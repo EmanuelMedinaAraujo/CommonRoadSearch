@@ -447,6 +447,8 @@ class MotionPrimitiveGenerator:
             f.write(node_xml_prettified)
             print("File saved: {}".format(file_name))
 
+        return file_name
+
     @classmethod
     def create_xml_node(cls, list_motion_primitives):
         # create root tag
