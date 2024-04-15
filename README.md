@@ -6,7 +6,7 @@ This is a programming exercise of the lecture **Fundamentals of Artificial Intel
 |-----------------------------|---------------------------|
 |Breadth First Search <br /> Depth First Search <br /> Depth-limited Search <br />   Uniform Cost Search (Dijkstra)      |Greedy Best First Search <br />  A* Search                  |
 
-The code is written in Python 3.7 and has been tested on Ubuntu 18.04. 
+The code is written in Python 3.9 and has been tested on Ubuntu 22.04. 
 
 #### Before you start with any of the steps mentioned below, first clone this repository via:
 
@@ -27,11 +27,11 @@ $ git clone https://gitlab.lrz.de/tum-cps/commonroad-search.git
 
 We provide 3 ways to run the software framework: **local installation**, **virtual machine (VM)**, or a **docker container**. Please refer to the table below for the supported platforms:
 
-| Platform                | [Local](#computer-local-installation) &nbsp; &nbsp; | [VM](#cloud-virtual-machine) &nbsp; &nbsp; | [Docker](#whale-docker) &nbsp; &nbsp; |
-| --------------------------- | ----------------- | ------------------| -----------------|
-| **Ubuntu** 18.04/20.04      | :heavy_check_mark:| :heavy_check_mark:|:heavy_check_mark:|
-| **MacOS** 10.13 or higher   | :heavy_check_mark:| :heavy_check_mark:<sup>2</sup>|:heavy_check_mark:|
-| **Windows**                 | :heavy_multiplication_x:<sup>1</sup> | :heavy_check_mark:|:heavy_check_mark:|
+| Platform                     | [Local](#computer-local-installation) &nbsp; &nbsp; | [VM](#cloud-virtual-machine) &nbsp; &nbsp; | [Docker](#whale-docker) &nbsp; &nbsp; |
+|------------------------------| ----------------- | ------------------| -----------------|
+| **Ubuntu** 18.04/20.04/22.04 | :heavy_check_mark:| :heavy_check_mark:|:heavy_check_mark:|
+| **MacOS** 10.13 or higher    | :heavy_check_mark:| :heavy_check_mark:<sup>2</sup>|:heavy_check_mark:|
+| **Windows**                  | :heavy_multiplication_x:<sup>1</sup> | :heavy_check_mark:|:heavy_check_mark:|
 
 <sup>1</sup>: _It is possible to run the CommonRoad software on Windows, however, the evaluation of submissions from Windows on our server
 has not been tested. We therefore don't recommend a local installation on Windows for this exercise._
