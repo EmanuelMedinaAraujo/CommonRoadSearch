@@ -72,9 +72,9 @@ Then, switch to the cloned commonroad-search folder on your machine with:
 $ cd <your_local_address>/commonroad-search
 ```
 
-And install the dependencies listed in `requirements.txt` with:
+And install the package with:
 ```sh
-$ pip install -r requirements.txt
+$ pip install .
 ```
 
 Optional: We install `Imagemagick` (only required for saving GIF animations of solutions) via:
