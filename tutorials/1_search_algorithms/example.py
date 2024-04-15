@@ -14,9 +14,9 @@ from commonroad.visualization.mp_renderer import MPRenderer
 
 # add current directory to python path for local imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from maneuver_automaton.maneuver_automaton import ManeuverAutomaton
-from motion_planner.motion_planner import MotionPlanner
-from motion_planner.plot_config import StudentScriptPlotConfig
+from SMP.maneuver_automaton.maneuver_automaton import ManeuverAutomaton
+from SMP.motion_planner.motion_planner import MotionPlanner
+from SMP.motion_planner.plot_config import StudentScriptPlotConfig
 
 
 def main():
