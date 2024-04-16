@@ -8,7 +8,12 @@ class Node:
     Class for nodes used in the motion planners.
     """
 
-    def __init__(self, list_paths: List[List[KSState]], list_primitives: List[MotionPrimitive], depth_tree: int):
+    def __init__(
+        self,
+        list_paths: List[List[KSState]],
+        list_primitives: List[MotionPrimitive],
+        depth_tree: int,
+    ):
         """
         Initialization of class Node.
         """
@@ -31,8 +36,13 @@ class PriorityNode(Node):
     Class for nodes with priorities used in the motion planners.
     """
 
-    def __init__(self, list_paths: List[List[KSState]], list_primitives: List[MotionPrimitive], depth_tree: int,
-                 priority: float):
+    def __init__(
+        self,
+        list_paths: List[List[KSState]],
+        list_primitives: List[MotionPrimitive],
+        depth_tree: int,
+        priority: float,
+    ):
         """
         Initialization of class PriorityNode.
         """

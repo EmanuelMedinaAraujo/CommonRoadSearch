@@ -26,28 +26,35 @@ import SMP.batch_processing.scenario_loader as scenarioloader
 from SMP.maneuver_automaton.maneuver_automaton import ManeuverAutomaton
 from SMP.motion_planner.motion_planner import MotionPlannerType
 
+
 @unique
 class ResultType(Enum):
-    SUCCESS = 'SUCCESS'
-    INVALID_SOLUTION = 'INVALID'
-    FAILURE = 'FAILURE'
-    EXCEPTION = 'EXCEPTION'
-    TIMEOUT = 'TIMEOUT'
+    SUCCESS = "SUCCESS"
+    INVALID_SOLUTION = "INVALID"
+    FAILURE = "FAILURE"
+    EXCEPTION = "EXCEPTION"
+    TIMEOUT = "TIMEOUT"
 
 
 class ResultText:
-    SUCCESS = 'Solution found:'
-    INVALID_SOLUTION = 'Solution found but invalid:'
-    FAILURE = 'Solution not found:'
-    EXCEPTION = 'Exception occurred:'
-    TIMEOUT = 'Time out:'
+    SUCCESS = "Solution found:"
+    INVALID_SOLUTION = "Solution found but invalid:"
+    FAILURE = "Solution not found:"
+    EXCEPTION = "Exception occurred:"
+    TIMEOUT = "Time out:"
 
 
 class SearchResult:
 
-    def __init__(self, scenario_benchmark_id: str, result: ResultType, search_time_ms: float,
-                 motion_planner_type: MotionPlannerType, error_msg: str = "",
-                 list_of_list_of_states: List[List[KSState]] = None):
+    def __init__(
+        self,
+        scenario_benchmark_id: str,
+        result: ResultType,
+        search_time_ms: float,
+        motion_planner_type: MotionPlannerType,
+        error_msg: str = "",
+        list_of_list_of_states: List[List[KSState]] = None,
+    ):
         self.scenario_id = scenario_benchmark_id
         self.result = result
         self.search_time_ms = search_time_ms
@@ -68,12 +75,19 @@ class SearchResult:
         # the positions of states need to be shifted from the rear axis to the center point of the vehicle to match
         # the defined convention of the position in a CommonRoad Trajectory
         state = list_of_list_of_states[0][0]
-        kwarg = {'position': state.position + np.array([rear_ax_dist * np.cos(state.orientation),
-                                                        rear_ax_dist * np.sin(state.orientation)]),
-                 'velocity': state.velocity,
-                 'steering_angle': state.steering_angle,
-                 'orientation': state.orientation,
-                 'time_step': state.time_step}
+        kwarg = {
+            "position": state.position
+            + np.array(
+                [
+                    rear_ax_dist * np.cos(state.orientation),
+                    rear_ax_dist * np.sin(state.orientation),
+                ]
+            ),
+            "velocity": state.velocity,
+            "steering_angle": state.steering_angle,
+            "orientation": state.orientation,
+            "time_step": state.time_step,
+        }
         list_states = [KSState(**kwarg)]
 
         for state_list in list_of_list_of_states:
@@ -81,20 +95,29 @@ class SearchResult:
             # duplicated, so we have to remove it
             state_list.pop(0)
             for state in state_list:
-                kwarg = {'position': state.position + np.array([rear_ax_dist * np.cos(state.orientation),
-                                                                rear_ax_dist * np.sin(state.orientation)]),
-                         'velocity': state.velocity,
-                         'steering_angle': state.steering_angle,
-                         'orientation': state.orientation,
-                         'time_step': state.time_step}
+                kwarg = {
+                    "position": state.position
+                    + np.array(
+                        [
+                            rear_ax_dist * np.cos(state.orientation),
+                            rear_ax_dist * np.sin(state.orientation),
+                        ]
+                    ),
+                    "velocity": state.velocity,
+                    "steering_angle": state.steering_angle,
+                    "orientation": state.orientation,
+                    "time_step": state.time_step,
+                }
                 list_states.append(KSState(**kwarg))
 
-        return Trajectory(initial_time_step=list_states[0].time_step, state_list=list_states)
+        return Trajectory(
+            initial_time_step=list_states[0].time_step, state_list=list_states
+        )
 
 
 def load_config_file(filename) -> dict:
     # open config file
-    with open(filename, 'r') as stream:
+    with open(filename, "r") as stream:
         try:
             configs = yaml.load(stream, Loader=yaml.BaseLoader)
         except yaml.YAMLError as exc:
@@ -120,7 +143,7 @@ def initialize_logger(logger_name, config_file) -> logging.Logger:
     logger.setLevel(logging.DEBUG)
 
     # create formatter
-    formatter = logging.Formatter('%(asctime)s\t%(name)s\t%(levelname)s\t%(message)s')
+    formatter = logging.Formatter("%(asctime)s\t%(name)s\t%(levelname)s\t%(message)s")
 
     # create console handler
     console_handler = logging.StreamHandler()
@@ -131,17 +154,20 @@ def initialize_logger(logger_name, config_file) -> logging.Logger:
     # logger.addHandler(console_handler)
 
     # create and handle log file
-    if config_file['logging']['log_to_file'] == 'True':
-        log_file_dir = config_file['logging']['log_file_dir']
-        date_time_string = ''
-        if config_file['logging']['add_timestamp_to_log_file'] == 'True':
+    if config_file["logging"]["log_to_file"] == "True":
+        log_file_dir = config_file["logging"]["log_file_dir"]
+        date_time_string = ""
+        if config_file["logging"]["add_timestamp_to_log_file"] == "True":
             now = datetime.now()  # current date and time
             date_time_string = now.strftime("_%Y_%m_%d_%H-%M-%S")
 
         # if directory not exists create it
         os.makedirs(log_file_dir, exist_ok=True)
 
-        log_file_path = os.path.join(log_file_dir, config_file['logging']['log_file_name'] + date_time_string + ".log")
+        log_file_path = os.path.join(
+            log_file_dir,
+            config_file["logging"]["log_file_name"] + date_time_string + ".log",
+        )
         file_handler = logging.handlers.RotatingFileHandler(log_file_path)
         # set the level of logging to file
         file_handler.setLevel(logging.DEBUG)
@@ -155,7 +181,9 @@ def initialize_logger(logger_name, config_file) -> logging.Logger:
 
 
 def get_last_time_step_in_scenario(scenario: Scenario):
-    time_steps = [len(obs.prediction.occupancy_set) for obs in scenario.dynamic_obstacles]
+    time_steps = [
+        len(obs.prediction.occupancy_set) for obs in scenario.dynamic_obstacles
+    ]
     return max(time_steps)
 
 
@@ -172,10 +200,12 @@ def get_plot_limits(trajectory: Trajectory, frame_count, zoom=30):
         else:
             state = trajectory.state_list[num_time_step_trajectory - 1]
 
-        dict_plot_limits[i] = [state.position[0] - zoom,
-                               state.position[0] + zoom,
-                               state.position[1] - zoom,
-                               state.position[1] + zoom]
+        dict_plot_limits[i] = [
+            state.position[0] - zoom,
+            state.position[0] + zoom,
+            state.position[1] - zoom,
+            state.position[1] + zoom,
+        ]
 
     return dict_plot_limits
 
@@ -188,7 +218,11 @@ def dim(a):
 
 def get_default_motion_primitive_base_name_by_veh_id(veh_type_id: int, config_dict):
     # the primitives vary for different vehicle models 1, 2 and 3.
-    assert veh_type_id in (1, 2, 3), "Input vehicle type id is not valid! Must be either 1, 2 or 3."
+    assert veh_type_id in (
+        1,
+        2,
+        3,
+    ), "Input vehicle type id is not valid! Must be either 1, 2 or 3."
 
     def_automaton_file = None
 
@@ -203,16 +237,20 @@ def get_default_motion_primitive_base_name_by_veh_id(veh_type_id: int, config_di
 
 
 def get_default_motion_primitive_file_by_veh_id(veh_type_id: int, config_dict):
-    def_automaton_file = get_default_motion_primitive_base_name_by_veh_id(veh_type_id, config_dict)
+    def_automaton_file = get_default_motion_primitive_base_name_by_veh_id(
+        veh_type_id, config_dict
+    )
 
     if def_automaton_file is not None:
-        return def_automaton_file + os.path.extsep + 'xml'
+        return def_automaton_file + os.path.extsep + "xml"
     else:
         return None
 
 
 def get_default_automaton_by_veh_id(veh_type_id: int, config_dict):
-    def_automaton_file = get_default_motion_primitive_base_name_by_veh_id(veh_type_id, config_dict)
+    def_automaton_file = get_default_motion_primitive_base_name_by_veh_id(
+        veh_type_id, config_dict
+    )
 
     if def_automaton_file is not None:
         return def_automaton_file + os.path.extsep + ManeuverAutomaton.extension
@@ -221,50 +259,50 @@ def get_default_automaton_by_veh_id(veh_type_id: int, config_dict):
 
 
 def parse_vehicle_model(model: str) -> VehicleModel:
-    if model == 'PM':
+    if model == "PM":
         cr_model = VehicleModel.PM
-    elif model == 'ST':
+    elif model == "ST":
         cr_model = VehicleModel.ST
-    elif model == 'KS':
+    elif model == "KS":
         cr_model = VehicleModel.KS
-    elif model == 'MB':
+    elif model == "MB":
         cr_model = VehicleModel.MB
     else:
-        raise ValueError('Selected vehicle model is not valid: {}.'.format(model))
+        raise ValueError("Selected vehicle model is not valid: {}.".format(model))
     return cr_model
 
 
 def parse_vehicle_type(vehicle_type: str) -> Tuple[VehicleType, int]:
-    if vehicle_type == 'FORD_ESCORT':
+    if vehicle_type == "FORD_ESCORT":
         cr_type = VehicleType.FORD_ESCORT
         cr_type_id = 1
-    elif vehicle_type == 'BMW_320i':
+    elif vehicle_type == "BMW_320i":
         cr_type = VehicleType.BMW_320i
         cr_type_id = 2
-    elif vehicle_type == 'VW_VANAGON':
+    elif vehicle_type == "VW_VANAGON":
         cr_type = VehicleType.VW_VANAGON
         cr_type_id = 3
     else:
-        raise ValueError('Selected vehicle type is not valid: {}.'.format(vehicle_type))
+        raise ValueError("Selected vehicle type is not valid: {}.".format(vehicle_type))
 
     return cr_type, cr_type_id
 
 
 def parse_cost_function(cost: str) -> CostFunction:
-    if cost == 'JB1':
+    if cost == "JB1":
         cr_cost = CostFunction.JB1
-    elif cost == 'SA1':
+    elif cost == "SA1":
         cr_cost = CostFunction.SA1
-    elif cost == 'WX1':
+    elif cost == "WX1":
         cr_cost = CostFunction.WX1
-    elif cost == 'SM1':
+    elif cost == "SM1":
         cr_cost = CostFunction.SM1
-    elif cost == 'SM2':
+    elif cost == "SM2":
         cr_cost = CostFunction.SM2
-    elif cost == 'SM3':
+    elif cost == "SM3":
         cr_cost = CostFunction.SM3
     else:
-        raise ValueError('Selected cost function is not valid: {}.'.format(cost))
+        raise ValueError("Selected cost function is not valid: {}.".format(cost))
     return cr_cost
 
 
@@ -292,13 +330,15 @@ def parse_motion_planner_type(motion_planner_type: str) -> MotionPlannerType:
     elif motion_planner_type == MotionPlannerType.STUDENT_EXAMPLE.value:
         return MotionPlannerType.STUDENT_EXAMPLE
     else:
-        raise ValueError(f'Motion planner type <{motion_planner_type}> is not valid!')
+        raise ValueError(f"Motion planner type <{motion_planner_type}> is not valid!")
 
 
 def parse_max_tree_depth(tree_depth: int) -> int:
     def_tree_depth = 100
     if tree_depth <= 0:
-        warnings.warn(f"Tree depth is equal or less than zero, set the default value {def_tree_depth}")
+        warnings.warn(
+            f"Tree depth is equal or less than zero, set the default value {def_tree_depth}"
+        )
         return def_tree_depth
     else:
         return tree_depth
@@ -307,7 +347,9 @@ def parse_max_tree_depth(tree_depth: int) -> int:
 def parse_timeout(timeout: int) -> int:
     def_timeout_in_sec = 50
     if timeout <= 0:
-        warnings.warn(f"Timeout is equal or less than zero, set the default value: {def_timeout_in_sec} sec")
+        warnings.warn(
+            f"Timeout is equal or less than zero, set the default value: {def_timeout_in_sec} sec"
+        )
         return def_timeout_in_sec
     else:
         return timeout
@@ -318,45 +360,62 @@ def parse_scenario_config(configuration, scenario, planning_problem_set):
     parse the scenario file and return scenario, planning problem set, vehicle model, etc.
     """
     # default configuration
-    vehicle_model = parse_vehicle_model(configuration['default']['vehicle_model'])
-    vehicle_type, vehicle_type_id = parse_vehicle_type(configuration['default']['vehicle_type'])
-    cost_function = parse_cost_function(configuration['default']['cost_function'])
-    planning_problem_idx = int(configuration['default']['planning_problem_idx'])
-    planner_id = int(configuration['default']['planner'])
-    max_tree_depth = int(configuration['default']['max_tree_depth'])
+    vehicle_model = parse_vehicle_model(configuration["default"]["vehicle_model"])
+    vehicle_type, vehicle_type_id = parse_vehicle_type(
+        configuration["default"]["vehicle_type"]
+    )
+    cost_function = parse_cost_function(configuration["default"]["cost_function"])
+    planning_problem_idx = int(configuration["default"]["planning_problem_idx"])
+    planner_id = int(configuration["default"]["planner"])
+    max_tree_depth = int(configuration["default"]["max_tree_depth"])
 
     # get configuration for each scenario
     if scenario.benchmark_id in configuration.keys():
         # configuration for specific scenario
         try:
-            vehicle_model = parse_vehicle_model(configuration[scenario.benchmark_id]['vehicle_model'])
+            vehicle_model = parse_vehicle_model(
+                configuration[scenario.benchmark_id]["vehicle_model"]
+            )
         except KeyError:
             pass
         try:
-            vehicle_type, vehicle_type_id = parse_vehicle_type(configuration[scenario.benchmark_id]['vehicle_type'])
+            vehicle_type, vehicle_type_id = parse_vehicle_type(
+                configuration[scenario.benchmark_id]["vehicle_type"]
+            )
         except KeyError:
             pass
         try:
-            cost_function = parse_cost_function(configuration[scenario.benchmark_id]['cost_function'])
+            cost_function = parse_cost_function(
+                configuration[scenario.benchmark_id]["cost_function"]
+            )
         except KeyError:
             pass
         try:
-            planning_problem_idx = int(configuration[scenario.benchmark_id]['planning_problem_idx'])
+            planning_problem_idx = int(
+                configuration[scenario.benchmark_id]["planning_problem_idx"]
+            )
         except KeyError:
             pass
         try:
-            planner_id = int(configuration[scenario.benchmark_id]['planner'])
+            planner_id = int(configuration[scenario.benchmark_id]["planner"])
         except KeyError:
             pass
         try:
-            max_tree_depth = int(configuration[scenario.benchmark_id]['max_tree_depth'])
+            max_tree_depth = int(configuration[scenario.benchmark_id]["max_tree_depth"])
         except KeyError:
             pass
 
     return (
-        scenario, planning_problem_set, vehicle_type_id, vehicle_type, vehicle_model, cost_function,
+        scenario,
+        planning_problem_set,
+        vehicle_type_id,
+        vehicle_type,
+        vehicle_model,
+        cost_function,
         planning_problem_idx,
-        planner_id, max_tree_depth)
+        planner_id,
+        max_tree_depth,
+    )
 
 
 result_tuple_list = [
@@ -364,11 +423,13 @@ result_tuple_list = [
     (ResultType.INVALID_SOLUTION, ResultText.INVALID_SOLUTION),
     (ResultType.FAILURE, ResultText.FAILURE),
     (ResultType.EXCEPTION, ResultText.EXCEPTION),
-    (ResultType.TIMEOUT, ResultText.TIMEOUT)
+    (ResultType.TIMEOUT, ResultText.TIMEOUT),
 ]
 
 
-def log_detailed_scenario_results(logger: logging.Logger, result_dict, verbose: bool = False):
+def log_detailed_scenario_results(
+    logger: logging.Logger, result_dict, verbose: bool = False
+):
     message = "=" * 30 + f"{'Search Results':^30}" + "=" * 30
     logger.info(message)
     print(message)
@@ -409,7 +470,9 @@ def log_statistics(logger: logging.Logger, result_dict, verbose: bool = False):
                 str_scenario_list += f"\n\t- {scenario_id}"
 
             if str_scenario_list != "":
-                message = "=" * 30 + f"{result_text[:-1]:^30}" + "=" * 30 + str_scenario_list
+                message = (
+                    "=" * 30 + f"{result_text[:-1]:^30}" + "=" * 30 + str_scenario_list
+                )
                 logger.info(message)
                 print(message)
 
@@ -441,16 +504,22 @@ def print_current_status(result_dict, logger: Union[logging.Logger, None] = None
 
 def init_processing(logger_name: str, for_multi_processing: bool = True):
     # load config file
-    configuration = load_config_file(os.path.join(os.path.dirname(__file__), 'batch_processing_config.yaml'))
+    configuration = load_config_file(
+        os.path.join(os.path.dirname(__file__), "batch_processing_config.yaml")
+    )
 
     # create logger
     logger = initialize_logger(logger_name, configuration)
 
     # create scenario loader which loads all desired scenarios
-    scenario_loader = scenarioloader.ScenarioLoader(configuration['setting']['input_path'], configuration, logger)
+    scenario_loader = scenarioloader.ScenarioLoader(
+        configuration["setting"]["input_path"], configuration, logger
+    )
 
     # generate automaton
-    def_veh_type, def_veh_type_id = parse_vehicle_type(configuration['default']['vehicle_type'])
+    def_veh_type, def_veh_type_id = parse_vehicle_type(
+        configuration["default"]["vehicle_type"]
+    )
     def_automaton_file = get_default_automaton_by_veh_id(def_veh_type_id, configuration)
     def_automaton = ManeuverAutomaton.load_automaton(def_automaton_file)
     def_automaton.serialize()
@@ -545,23 +614,32 @@ def init_processing(logger_name: str, for_multi_processing: bool = True):
 #     # print(f"{scenario.benchmark_id} GIF saved.")
 
 
-def save_gif2(scenario: Scenario, planning_problem: PlanningProblem, trajectory: Trajectory, output_path: str) -> None:
+def save_gif2(
+    scenario: Scenario,
+    planning_problem: PlanningProblem,
+    trajectory: Trajectory,
+    output_path: str,
+) -> None:
     print(f"Generating GIF for {scenario.scenario_id} ...")
 
     # create the ego vehicle prediction using the trajectory and the shape of the obstacle
     dynamic_obstacle_initial_state = trajectory.state_list[0]
     # todo: use real vehicle size
     dynamic_obstacle_shape = Rectangle(width=1.8, length=4.3)
-    dynamic_obstacle_prediction = TrajectoryPrediction(trajectory, dynamic_obstacle_shape)
+    dynamic_obstacle_prediction = TrajectoryPrediction(
+        trajectory, dynamic_obstacle_shape
+    )
 
     # generate the dynamic obstacle according to the specification
     dynamic_obstacle_id = scenario.generate_object_id()
     dynamic_obstacle_type = ObstacleType.CAR
-    dynamic_obstacle = DynamicObstacle(dynamic_obstacle_id,
-                                       dynamic_obstacle_type,
-                                       dynamic_obstacle_shape,
-                                       dynamic_obstacle_initial_state,
-                                       dynamic_obstacle_prediction)
+    dynamic_obstacle = DynamicObstacle(
+        dynamic_obstacle_id,
+        dynamic_obstacle_type,
+        dynamic_obstacle_shape,
+        dynamic_obstacle_initial_state,
+        dynamic_obstacle_prediction,
+    )
 
     # configuration for plotting
     fig_num = os.getpid()
@@ -572,7 +650,7 @@ def save_gif2(scenario: Scenario, planning_problem: PlanningProblem, trajectory:
 
     frame_count = len(trajectory.state_list)
     # delay between frames in milliseconds, 1 second * dt to get actual time in ms
-    interval = (1000 * scenario.dt)
+    interval = 1000 * scenario.dt
     # add short padding to create a short break before the loop (1 sec)
     frame_count += int(0.5 / scenario.dt)
     # a dictionary that holds the plot limits at each time step
@@ -582,14 +660,16 @@ def save_gif2(scenario: Scenario, planning_problem: PlanningProblem, trajectory:
     (ln,) = plt.plot([], [], animated=True)
 
     def init_plot():
-        fig.gca().axis('equal')
+        fig.gca().axis("equal")
         ax = fig.gca()
         renderer = MPRenderer(plot_limits=dict_plot_limits[0], ax=ax)
 
         scenario.draw(renderer)
         planning_problem.draw(renderer)
         renderer.draw_params.time_begin = 0
-        renderer.draw_params.dynamic_obstacle.vehicle_shape.occupancy.shape.facecolor = "green"
+        renderer.draw_params.dynamic_obstacle.vehicle_shape.occupancy.shape.facecolor = (
+            "green"
+        )
         dynamic_obstacle.draw(renderer)
 
         fig.tight_layout()
@@ -602,21 +682,30 @@ def save_gif2(scenario: Scenario, planning_problem: PlanningProblem, trajectory:
         scenario.draw(renderer)
         planning_problem.draw(renderer)
         renderer.draw_params.time_begin = frame
-        renderer.draw_params.dynamic_obstacle.vehicle_shape.occupancy.shape.facecolor = "green"
+        renderer.draw_params.dynamic_obstacle.vehicle_shape.occupancy.shape.facecolor = (
+            "green"
+        )
         dynamic_obstacle.draw(renderer)
 
         renderer.render()
         return (ln,)
 
-    anim = FuncAnimation(fig, animate_plot, frames=frame_count, init_func=init_plot, blit=True, interval=interval)
+    anim = FuncAnimation(
+        fig,
+        animate_plot,
+        frames=frame_count,
+        init_func=init_plot,
+        blit=True,
+        interval=interval,
+    )
 
-    file_name = str(scenario.scenario_id) + os.extsep + 'gif'
+    file_name = str(scenario.scenario_id) + os.extsep + "gif"
     anim.save(os.path.join(output_path, file_name), dpi=30, writer="imagemagick")
     plt.close(fig)
 
 
 def str2bool(bool_string: str):
-    return bool_string.lower() in ('yes', 'true', 't', 'y', '1')
+    return bool_string.lower() in ("yes", "true", "t", "y", "1")
 
 
 def get_frame_count(scenario: Scenario) -> int:
@@ -633,10 +722,14 @@ def get_frame_count(scenario: Scenario) -> int:
     return frame_count
 
 
-def redraw_dynamic_obstacles(dyn_obst_list: List[DynamicObstacle], handles,
-                             figure_handle,
-                             draw_params=None, plot_limits: Union[List[Union[int, float]], None] = None,
-                             draw: bool = True) -> None:
+def redraw_dynamic_obstacles(
+    dyn_obst_list: List[DynamicObstacle],
+    handles,
+    figure_handle,
+    draw_params=None,
+    plot_limits: Union[List[Union[int, float]], None] = None,
+    draw: bool = True,
+) -> None:
     """
     This function is used for fast updating dynamic obstacles of an already drawn plot. Saves on average about 80% time
     compared to a complete plot.
@@ -671,18 +764,19 @@ def redraw_dynamic_obstacles(dyn_obst_list: List[DynamicObstacle], handles,
                 if handle is not None:
                     ax.draw_artist(handle)
 
-        if mpl.get_backend() == 'TkAgg':
+        if mpl.get_backend() == "TkAgg":
             figure_handle.canvas.draw()
 
-        elif mpl.get_backend() == 'Qt5Agg':
+        elif mpl.get_backend() == "Qt5Agg":
             figure_handle.canvas.update()
         else:
             try:
                 figure_handle.canvas.update()
             except:
                 raise Exception(
-                    '<plot_helper/redraw_dynamic_obstacles> Backend for matplotlib needs to be \'Qt5Agg\' or \'TkAgg\' but is'
-                    '\'%s\'' % mpl.get_backend())
+                    "<plot_helper/redraw_dynamic_obstacles> Backend for matplotlib needs to be 'Qt5Agg' or 'TkAgg' but is"
+                    "'%s'" % mpl.get_backend()
+                )
 
         renderer.render()
         figure_handle.canvas.flush_events()

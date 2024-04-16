@@ -4,14 +4,14 @@ class PlotConfig:
     PLOT_LEGEND = False
     PLOT_COLLISION_STEPS = False
     PLOTTING_PARAMS = {
-        0: ('gold', 'solid', 2.0),
-        1: ('gold', '--', 2.0),
-        2: ('red', 'solid', 2.0),
-        3: ('grey', 'solid', 2.0),
-        4: ('green', 'solid', 3.0)
+        0: ("gold", "solid", 2.0),
+        1: ("gold", "--", 2.0),
+        2: ("red", "solid", 2.0),
+        3: ("grey", "solid", 2.0),
+        4: ("green", "solid", 3.0),
     }
     SAVE_FIG = False
-    OUTPUT_FORMAT = 'svg'
+    OUTPUT_FORMAT = "svg"
 
 
 class DefaultPlotConfig(PlotConfig):

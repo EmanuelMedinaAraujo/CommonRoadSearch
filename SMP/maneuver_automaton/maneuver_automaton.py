@@ -11,13 +11,17 @@ from commonroad.geometry.shape import Rectangle
 from commonroad.planning.planning_problem import PlanningProblem
 from tqdm.notebook import tqdm
 
-from SMP.maneuver_automaton.motion_primitive import MotionPrimitive, MotionPrimitiveParser
+from SMP.maneuver_automaton.motion_primitive import (
+    MotionPrimitive,
+    MotionPrimitiveParser,
+)
 
 
 class ManeuverAutomaton(object):
     """
     Class for motion automaton, which holds and manipulates motion primitives for motion planning.
     """
+
     __create_key = object()
     extension = "automaton"
 
@@ -25,12 +29,16 @@ class ManeuverAutomaton(object):
         """
         Initialization of a motion automaton.
         """
-        assert (create_key == ManeuverAutomaton.__create_key), \
-            "MotionAutomaton objects must be created using MotionAutomaton.generateAutomaton or" \
+        assert create_key == ManeuverAutomaton.__create_key, (
+            "MotionAutomaton objects must be created using MotionAutomaton.generateAutomaton or"
             "MotionAutomaton.loadAutomaton"
+        )
 
-        assert type_vehicle in (VehicleType.FORD_ESCORT, VehicleType.BMW_320i, VehicleType.VW_VANAGON), \
-            f"Input vehicle type <{type_vehicle}> is not valid! Must be either FORD_ESCORT, BMW_320i or VW_VANAGON."
+        assert type_vehicle in (
+            VehicleType.FORD_ESCORT,
+            VehicleType.BMW_320i,
+            VehicleType.VW_VANAGON,
+        ), f"Input vehicle type <{type_vehicle}> is not valid! Must be either FORD_ESCORT, BMW_320i or VW_VANAGON."
 
         self._primitive_id_counter = int(-1)
         self.num_primitives = 0
@@ -39,7 +47,6 @@ class ManeuverAutomaton(object):
         self.sets_tuples_primitives = set()
         self.dict_primitives = dict()
         self.type_vehicle = type_vehicle
-
 
         self.shape_ego = None
         if self.type_vehicle == VehicleType.FORD_ESCORT:
@@ -54,8 +61,9 @@ class ManeuverAutomaton(object):
         """
         Asserts whether a file has a given extension.
         """
-        assert fnmatch.fnmatch(name_file, '*' + os.extsep + extension), \
-            f"The given file is not a type of <{extension}>"
+        assert fnmatch.fnmatch(
+            name_file, "*" + os.extsep + extension
+        ), f"The given file is not a type of <{extension}>"
 
     @classmethod
     def assert_file_is_xml(cls, name_file: str) -> None:
@@ -78,7 +86,9 @@ class ManeuverAutomaton(object):
         elif "VW_VANAGON" in name_file:
             vehicle_type = VehicleType.VW_VANAGON
 
-        assert vehicle_type is not None, f"Vehicle type is unidentifiable in file: {name_file}"
+        assert (
+            vehicle_type is not None
+        ), f"Vehicle type is unidentifiable in file: {name_file}"
 
         return vehicle_type
 
@@ -113,7 +123,7 @@ class ManeuverAutomaton(object):
         return cls.parse_vehicle_type(veh_type)
 
     @classmethod
-    def _create_automaton(cls, file_motion_primitive) -> 'ManeuverAutomaton':
+    def _create_automaton(cls, file_motion_primitive) -> "ManeuverAutomaton":
         """
         Creates an automaton with the given motion primitive file.
         """
@@ -124,7 +134,7 @@ class ManeuverAutomaton(object):
         return automaton
 
     @staticmethod
-    def generate_automaton(file_motion_primitive) -> 'ManeuverAutomaton':
+    def generate_automaton(file_motion_primitive) -> "ManeuverAutomaton":
         """
         Wrapper to generate an automaton with the given motion primitive file.
         """
@@ -137,13 +147,17 @@ class ManeuverAutomaton(object):
             prefix = os.path.join(path_motion_automaton, "primitives")
 
             try:
-                automaton = ManeuverAutomaton._create_automaton(os.path.join(prefix, file_motion_primitive))
+                automaton = ManeuverAutomaton._create_automaton(
+                    os.path.join(prefix, file_motion_primitive)
+                )
             except FileNotFoundError:
-                raise FileNotFoundError(f"Motion Primitive file not found at location: {file_motion_primitive}")
+                raise FileNotFoundError(
+                    f"Motion Primitive file not found at location: {file_motion_primitive}"
+                )
 
         automaton.examine_connectivity()
         print("Automaton created.")
-        print('Number of loaded primitives: ' + str(len(automaton.list_primitives)))
+        print("Number of loaded primitives: " + str(len(automaton.list_primitives)))
 
         return automaton
 
@@ -153,12 +167,12 @@ class ManeuverAutomaton(object):
         """
         self.assert_file_extension(file_automaton, ManeuverAutomaton.extension)
 
-        with open(file_automaton, 'wb') as f:
+        with open(file_automaton, "wb") as f:
             self.serialize()
             pickle.dump(self, f)
 
     @classmethod
-    def load_automaton(cls, file_automaton) -> 'ManeuverAutomaton':
+    def load_automaton(cls, file_automaton) -> "ManeuverAutomaton":
         """
         Loads automaton by simple object deserialization.
         """
@@ -170,7 +184,7 @@ class ManeuverAutomaton(object):
             prefix = os.path.join(path_motion_automaton, "automata")
             file_automaton = os.path.join(prefix, file_automaton)
 
-        with open(file_automaton, 'rb') as f:
+        with open(file_automaton, "rb") as f:
             automaton: ManeuverAutomaton = pickle.load(f)
             # restore the Primitives and Successors of primitives
             automaton.deserialize()
@@ -185,13 +199,17 @@ class ManeuverAutomaton(object):
         :param file_motion_primitive: the motion primitive xml file
         :param dir_save: the directory where the created automaton will be saved
         """
-        automaton = ManeuverAutomaton.generate_automaton(file_motion_primitive=file_motion_primitive)
+        automaton = ManeuverAutomaton.generate_automaton(
+            file_motion_primitive=file_motion_primitive
+        )
 
         # cut the extension
         name_file_motion_primitive = Path(file_motion_primitive).stem
 
         # create new filename
-        name_file_automaton = name_file_motion_primitive + os.extsep + ManeuverAutomaton.extension
+        name_file_automaton = (
+            name_file_motion_primitive + os.extsep + ManeuverAutomaton.extension
+        )
 
         # join directory and filename
         path_automaton = os.path.join(dir_save, name_file_automaton)
@@ -214,7 +232,13 @@ class ManeuverAutomaton(object):
         self.list_primitives.extend(self.dict_primitives.values())
         for primitive in self.list_primitives:
             primitive.list_successors.extend(
-                [self.dict_primitives.get(key) for key in self.dict_primitives.get(primitive.id).list_ids_successors])
+                [
+                    self.dict_primitives.get(key)
+                    for key in self.dict_primitives.get(
+                        primitive.id
+                    ).list_ids_successors
+                ]
+            )
 
     def read_primitives_from_xml(self, file_motion_primitive: str) -> None:
         """
@@ -263,8 +287,20 @@ class ManeuverAutomaton(object):
         sf = primitive.state_initial
 
         # optimized tuple order for faster filtering
-        tuple_primitive = (sl.time_step, sl.x, sl.y, sl.orientation, sl.steering_angle, sl.velocity,
-                           sf.time_step, sf.x, sf.y, sf.orientation, sf.steering_angle, sf.velocity)
+        tuple_primitive = (
+            sl.time_step,
+            sl.x,
+            sl.y,
+            sl.orientation,
+            sl.steering_angle,
+            sl.velocity,
+            sf.time_step,
+            sf.x,
+            sf.y,
+            sf.orientation,
+            sf.steering_angle,
+            sf.velocity,
+        )
 
         # if it is not a duplicate then add
         if tuple_primitive not in self.sets_tuples_primitives:
@@ -299,9 +335,14 @@ class ManeuverAutomaton(object):
         set_ids_primitives_to_be_removed = set(list_ids)
         for primitive in self.dict_primitives.values():
             primitive.list_ids_successors = list(
-                set(primitive.list_ids_successors).difference(set_ids_primitives_to_be_removed))
+                set(primitive.list_ids_successors).difference(
+                    set_ids_primitives_to_be_removed
+                )
+            )
 
-    def examine_primitive_connectivity(self, primitive_predecessor: MotionPrimitive) -> None:
+    def examine_primitive_connectivity(
+        self, primitive_predecessor: MotionPrimitive
+    ) -> None:
         """
         Creates the successor list for a single primitive and stores them in a successor list of the given primitive.
 
@@ -326,11 +367,17 @@ class ManeuverAutomaton(object):
             print("Connectivity examination took\t{:10.4f}\tms".format(time_elapsed))
             print(f"Primitives before pruning: {self.num_primitives}")
 
-        list_ids_primitives_without_successor = self.get_primitives_ids_without_successor()
+        list_ids_primitives_without_successor = (
+            self.get_primitives_ids_without_successor()
+        )
 
         while len(list_ids_primitives_without_successor) != 0:
-            self.prune_primitives_without_successor(list_ids_primitives_without_successor)
-            list_ids_primitives_without_successor = self.get_primitives_ids_without_successor()
+            self.prune_primitives_without_successor(
+                list_ids_primitives_without_successor
+            )
+            list_ids_primitives_without_successor = (
+                self.get_primitives_ids_without_successor()
+            )
 
         self.num_primitives = len(self.dict_primitives)
         if verbose:
@@ -343,7 +390,7 @@ class ManeuverAutomaton(object):
         :param velocity_initial: the initial velocity
         :return: the closest start state velocity in the automaton
         """
-        diff_velocity_min = float('inf')
+        diff_velocity_min = float("inf")
         velocity_closest = None
 
         for primitive in self.list_primitives:
@@ -352,7 +399,9 @@ class ManeuverAutomaton(object):
                 diff_velocity_min = diff_velocity
                 velocity_closest = primitive.state_initial.velocity
 
-        assert velocity_closest is not None, "Closest velocity to the planning problem not found!"
+        assert (
+            velocity_closest is not None
+        ), "Closest velocity to the planning problem not found!"
 
         return velocity_closest
 
@@ -364,8 +413,9 @@ class ManeuverAutomaton(object):
             # primitive.id_type_vehicle = self.type_vehicle
             primitive.type_vehicle = self.type_vehicle
 
-    def create_initial_motion_primitive(self, planning_problem: PlanningProblem,
-                                        initial_steering_angle=0.0) -> MotionPrimitive:
+    def create_initial_motion_primitive(
+        self, planning_problem: PlanningProblem, initial_steering_angle=0.0
+    ) -> MotionPrimitive:
         """
         Creates the initial motion primitive from the planning problem with the given initial steering angle.
 
@@ -379,20 +429,28 @@ class ManeuverAutomaton(object):
 
         # the initial velocity of the planning problem may be any value, we need to obtain the closest velocity to it
         # from state_initials of the primitives in order to get the feasible successors of the planning problem
-        initial_state.velocity = self.get_closest_initial_velocity(planning_problem.initial_state.velocity)
+        initial_state.velocity = self.get_closest_initial_velocity(
+            planning_problem.initial_state.velocity
+        )
 
         # turn initial state into a motion primitive to check for connectivity to subsequent motion primitives
-        state_final = MotionPrimitive.PrimitiveState(x=initial_state.position[0],
-                                                     y=initial_state.position[1],
-                                                     steering_angle=initial_state.steering_angle,
-                                                     velocity=initial_state.velocity,
-                                                     orientation=initial_state.orientation,
-                                                     time_step=initial_state.time_step)
+        state_final = MotionPrimitive.PrimitiveState(
+            x=initial_state.position[0],
+            y=initial_state.position[1],
+            steering_angle=initial_state.steering_angle,
+            velocity=initial_state.velocity,
+            orientation=initial_state.orientation,
+            time_step=initial_state.time_step,
+        )
 
         # create a dummy initial primitive for creating and holding successors from the initial state
         # noinspection PyTypeChecker
-        primitive_initial = MotionPrimitive(state_initial=None, state_final=state_final, trajectory=None,
-                                            length_time_step=0)
+        primitive_initial = MotionPrimitive(
+            state_initial=None,
+            state_final=state_final,
+            trajectory=None,
+            length_time_step=0,
+        )
 
         # create connectivity list for this imaginary motion primitive
         self.examine_primitive_connectivity(primitive_initial)
