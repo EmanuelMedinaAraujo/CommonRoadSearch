@@ -6,6 +6,7 @@ class Queue(ABC):
     """
     Abstract class for queues.
     """
+
     def __init__(self):
         self.list_elements = []
 
@@ -33,6 +34,7 @@ class FIFOQueue(Queue):
     """
     Implementation of First-In First-Out queues.
     """
+
     def __init__(self):
         super(FIFOQueue, self).__init__()
 
@@ -49,6 +51,7 @@ class LIFOQueue(Queue):
     """
     Implementation of Last-In First-Out queues.
     """
+
     def __init__(self):
         super(LIFOQueue, self).__init__()
 
@@ -65,6 +68,7 @@ class PriorityQueue:
     """
     Implementation of queues of items with priorities.
     """
+
     def __init__(self):
         self.list_elements = []
         self.count = 0

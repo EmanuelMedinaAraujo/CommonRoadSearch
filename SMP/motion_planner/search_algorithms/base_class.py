@@ -988,13 +988,20 @@ class SearchBaseClass(ABC):
         :param path: the path whose steering angle cost is calculated
         """
         cost = 0
-        for i in range(len(path) - 1):  # Adjust range to prevent 'index out of range' error
+        for i in range(
+            len(path) - 1
+        ):  # Adjust range to prevent 'index out of range' error
             if hasattr(path[i], "steering_angle"):
                 cost += abs(path[i].steering_angle)
             else:
                 # Change in Heading Angle:
                 delta_theta = path[i + 1].orientation - path[i].orientation
-                cost += abs(np.arctan2(self.wheel_base, path[i].velocity * self.scenario.dt/delta_theta))
+                cost += abs(
+                    np.arctan2(
+                        self.wheel_base,
+                        path[i].velocity * self.scenario.dt / delta_theta,
+                    )
+                )
         return cost
 
     def calc_steering_velocity_cost(self, path: List[KSState]) -> float:
@@ -1003,12 +1010,17 @@ class SearchBaseClass(ABC):
         :param path: the path whose steering velocity cost is calculated
         """
         cost = 0
-        for i in range(len(path) - 1):  # Adjust range to prevent 'index out of range' error
+        for i in range(
+            len(path) - 1
+        ):  # Adjust range to prevent 'index out of range' error
             if hasattr(path[i], "steering_angle_speed"):
                 cost += abs(path[i].steering_angle_speed)
             else:
                 # Change in Heading Angle:
-                cost += abs((path[i + 1].steering_angle - path[i].steering_angle) / self.scenario.dt)
+                cost += abs(
+                    (path[i + 1].steering_angle - path[i].steering_angle)
+                    / self.scenario.dt
+                )
         return cost
 
     def calc_acceleration_cost(self, path: List[KSState]) -> float:
@@ -1017,12 +1029,16 @@ class SearchBaseClass(ABC):
         :param path: the path whose acceleration cost is calculated
         """
         cost = 0
-        for i in range(len(path) - 1):  # Adjust range to prevent 'index out of range' error
+        for i in range(
+            len(path) - 1
+        ):  # Adjust range to prevent 'index out of range' error
             if hasattr(path[i], "acceleration"):
                 cost += abs(path[i].acceleration)
             else:
                 # Calculate the change in velocity over time (approximate acceleration)
-                cost += abs((path[i + 1].velocity - path[i].velocity) / self.scenario.dt)
+                cost += abs(
+                    (path[i + 1].velocity - path[i].velocity) / self.scenario.dt
+                )
         return cost
 
     def calc_path_efficiency(self, path: List[KSState]) -> float:

@@ -38,10 +38,10 @@ class MotionPrimitiveGenerator:
 
         def __init__(self, configuration):
             # output related
-            self.dir_output = configuration['outputs']['output_directory']
+            self.dir_output = configuration["outputs"]["output_directory"]
 
             # vehicle related
-            self.id_type_vehicle = configuration['vehicles']['vehicle_type_id']
+            self.id_type_vehicle = configuration["vehicles"]["vehicle_type_id"]
 
             assert self.id_type_vehicle in [1, 2, 3], "Wrong vehicle type id!"
 
@@ -64,28 +64,46 @@ class MotionPrimitiveGenerator:
                 self.vehicle_dynamics = VehicleDynamics.KS(VehicleType.VW_VANAGON)
 
             # time related
-            self.duration = configuration['primitives']['duration']
-            self.dt = configuration['primitives']['dt']
-            self.dt_sim = configuration['primitives']['dt_simulation']
+            self.duration = configuration["primitives"]["duration"]
+            self.dt = configuration["primitives"]["dt"]
+            self.dt_sim = configuration["primitives"]["dt_simulation"]
             # times 100 for two-significant-digits accuracy, turns into centi-seconds
-            self.time_stamps = ((np.arange(0, self.duration, self.dt_sim) + self.dt_sim) * 100).astype(int)
+            self.time_stamps = (
+                (np.arange(0, self.duration, self.dt_sim) + self.dt_sim) * 100
+            ).astype(int)
 
             # velocity related
-            self.velocity_sample_min = configuration['primitives']['velocity_sample_min']
-            self.velocity_sample_max = configuration['primitives']['velocity_sample_max']
-            self.num_sample_velocity = configuration['primitives']['num_sample_velocity']
+            self.velocity_sample_min = configuration["primitives"][
+                "velocity_sample_min"
+            ]
+            self.velocity_sample_max = configuration["primitives"][
+                "velocity_sample_max"
+            ]
+            self.num_sample_velocity = configuration["primitives"][
+                "num_sample_velocity"
+            ]
 
             # steering angle related
-            self.steering_angle_sample_min = configuration['primitives']['steering_angle_sample_min']
-            self.steering_angle_sample_max = configuration['primitives']['steering_angle_sample_max']
-            self.num_sample_steering_angle = configuration['primitives']['num_sample_steering_angle']
+            self.steering_angle_sample_min = configuration["primitives"][
+                "steering_angle_sample_min"
+            ]
+            self.steering_angle_sample_max = configuration["primitives"][
+                "steering_angle_sample_max"
+            ]
+            self.num_sample_steering_angle = configuration["primitives"][
+                "num_sample_steering_angle"
+            ]
 
             if np.isclose(self.steering_angle_sample_max, 0):
                 self.steering_angle_sample_max = self.param_vehicle.steering.max
 
             # sample trajectories
-            self.num_segments_trajectory = configuration['sample_trajectories']['num_segments_trajectory']
-            self.num_simulations = configuration['sample_trajectories']['num_simulations']
+            self.num_segments_trajectory = configuration["sample_trajectories"][
+                "num_segments_trajectory"
+            ]
+            self.num_simulations = configuration["sample_trajectories"][
+                "num_simulations"
+            ]
 
     configuration = None
     parameter: Parameter = None
@@ -95,7 +113,7 @@ class MotionPrimitiveGenerator:
         """
         loads input configuration file
         """
-        with open(path_file_config, 'r') as stream:
+        with open(path_file_config, "r") as stream:
             try:
                 configuration = yaml.safe_load(stream)
                 cls.configuration = configuration
@@ -117,7 +135,7 @@ class MotionPrimitiveGenerator:
         # calculate number of possible states
         num_possible_states = len(list_samples_v) * len(list_samples_sa)
         # calculate number of possible combinations of initial states and final states
-        num_possible_combinations = num_possible_states ** 2
+        num_possible_combinations = num_possible_states**2
         print("Total possible combinations of states: ", num_possible_combinations)
 
         # initialize counter
@@ -129,38 +147,64 @@ class MotionPrimitiveGenerator:
         # for saving results
         list_motion_primitives = []
         # number of time steps for simulation
-        num_step_sim = int(int(cls.parameter.duration * 10) / int(cls.parameter.dt * 10))
+        num_step_sim = int(
+            int(cls.parameter.duration * 10) / int(cls.parameter.dt * 10)
+        )
 
         # v = velocity, sa = steering_angle
         # iterate through possible instances of the Cartesian product of list_samples_v and list_samples_sa
         # create all possible combinations of (v_start, sa_start) and (v_end, sa_end)
         print("Generating motion primitives...")
         bar_progress = tqdm(total=num_possible_combinations)
-        for (v_start, sa_start) in itertools.product(list_samples_v, list_samples_sa):
-            for (v_end, sa_end) in itertools.product(list_samples_v, list_samples_sa):
+        for v_start, sa_start in itertools.product(list_samples_v, list_samples_sa):
+            for v_end, sa_end in itertools.product(list_samples_v, list_samples_sa):
 
                 # check input constraints
-                is_valid_combination, input_a, input_sa_rate = cls.check_input_constraints(v_start, v_end, sa_start,
-                                                                                           sa_end, cls.parameter)
+                is_valid_combination, input_a, input_sa_rate = (
+                    cls.check_input_constraints(
+                        v_start, v_end, sa_start, sa_end, cls.parameter
+                    )
+                )
                 if not is_valid_combination:
                     continue
 
                 # add initial state to the list of forward simulated states (reference point: rear axis)
-                initial_state = KSState(position=np.array([0.0, 0.0]), velocity=v_start, steering_angle=sa_start,
-                                        orientation=0.0, time_step=0)
+                initial_state = KSState(
+                    position=np.array([0.0, 0.0]),
+                    velocity=v_start,
+                    steering_angle=sa_start,
+                    orientation=0.0,
+                    time_step=0,
+                )
 
                 # shift to center point of vehicle and add to list of simulated states
-                list_states_simulated = [initial_state.translate_rotate(
-                        np.array([rear_ax_dist * np.cos(initial_state.orientation),
-                                  rear_ax_dist * np.sin(initial_state.orientation)]), 0)]
+                list_states_simulated = [
+                    initial_state.translate_rotate(
+                        np.array(
+                            [
+                                rear_ax_dist * np.cos(initial_state.orientation),
+                                rear_ax_dist * np.sin(initial_state.orientation),
+                            ]
+                        ),
+                        0,
+                    )
+                ]
 
-                input_state = InputState(acceleration=input_a, steering_angle_speed=input_sa_rate, time_step=0)
+                input_state = InputState(
+                    acceleration=input_a,
+                    steering_angle_speed=input_sa_rate,
+                    time_step=0,
+                )
 
                 for _ in range(num_step_sim):
-                    state_simulated_next = cls.parameter.vehicle_dynamics.simulate_next_state(list_states_simulated[-1],
-                                                                                              input_state,
-                                                                                              cls.parameter.dt,
-                                                                                              throw=False)
+                    state_simulated_next = (
+                        cls.parameter.vehicle_dynamics.simulate_next_state(
+                            list_states_simulated[-1],
+                            input_state,
+                            cls.parameter.dt,
+                            throw=False,
+                        )
+                    )
                     # if the simulation result is not valid
                     if not state_simulated_next:
                         break
@@ -168,15 +212,21 @@ class MotionPrimitiveGenerator:
                         list_states_simulated.append(state_simulated_next)
 
                 # generate simulated CR Trajectory (positions refer to center point of vehicle)
-                trajectory_simulated = Trajectory(initial_time_step=0, state_list=list_states_simulated)
+                trajectory_simulated = Trajectory(
+                    initial_time_step=0, state_list=list_states_simulated
+                )
 
                 with warnings.catch_warnings():
-                    warnings.simplefilter('ignore')
+                    warnings.simplefilter("ignore")
 
                     try:
-                        is_feasible_trajectory, _ = feasibility_checker.trajectory_feasibility(trajectory_simulated,
-                                                                                               cls.parameter.vehicle_dynamics,
-                                                                                               cls.parameter.dt)
+                        is_feasible_trajectory, _ = (
+                            feasibility_checker.trajectory_feasibility(
+                                trajectory_simulated,
+                                cls.parameter.vehicle_dynamics,
+                                cls.parameter.dt,
+                            )
+                        )
                     except:
                         break
 
@@ -186,15 +236,24 @@ class MotionPrimitiveGenerator:
                     #  list of motion primitives
                     new_state_list = list()
                     for state in trajectory_simulated.state_list:
-                        kwarg = {'position': state.position - np.array([rear_ax_dist * np.cos(state.orientation),
-                                                                        rear_ax_dist * np.sin(state.orientation)]),
-                                 'velocity': state.velocity,
-                                 'steering_angle': state.steering_angle,
-                                 'orientation': state.orientation,
-                                 'time_step': state.time_step}
+                        kwarg = {
+                            "position": state.position
+                            - np.array(
+                                [
+                                    rear_ax_dist * np.cos(state.orientation),
+                                    rear_ax_dist * np.sin(state.orientation),
+                                ]
+                            ),
+                            "velocity": state.velocity,
+                            "steering_angle": state.steering_angle,
+                            "orientation": state.orientation,
+                            "time_step": state.time_step,
+                        }
                         new_state_list.append(KSState(**kwarg))
 
-                    list_motion_primitives.append(Trajectory(initial_time_step=0, state_list=new_state_list))
+                    list_motion_primitives.append(
+                        Trajectory(initial_time_step=0, state_list=new_state_list)
+                    )
 
             bar_progress.update(num_possible_states)
 
@@ -209,13 +268,17 @@ class MotionPrimitiveGenerator:
         """
         generates lists of samples for velocity and steering angle based on the input parameters
         """
-        list_samples_v = np.linspace(cls.parameter.velocity_sample_min,
-                                     cls.parameter.velocity_sample_max,
-                                     cls.parameter.num_sample_velocity)
+        list_samples_v = np.linspace(
+            cls.parameter.velocity_sample_min,
+            cls.parameter.velocity_sample_max,
+            cls.parameter.num_sample_velocity,
+        )
 
-        list_samples_steering_angle = np.linspace(cls.parameter.steering_angle_sample_min,
-                                                  cls.parameter.steering_angle_sample_max,
-                                                  cls.parameter.num_sample_steering_angle)
+        list_samples_steering_angle = np.linspace(
+            cls.parameter.steering_angle_sample_min,
+            cls.parameter.steering_angle_sample_max,
+            cls.parameter.num_sample_steering_angle,
+        )
 
         return list_samples_v, list_samples_steering_angle
 
@@ -229,8 +292,9 @@ class MotionPrimitiveGenerator:
         input_sa_rate = (sa_end - sa_start) / parameter.duration
 
         # check if the constraints are respected
-        if abs(input_a) > abs(parameter.param_vehicle.longitudinal.a_max) or \
-                abs(input_sa_rate) > abs(parameter.param_vehicle.steering.v_max):
+        if abs(input_a) > abs(parameter.param_vehicle.longitudinal.a_max) or abs(
+            input_sa_rate
+        ) > abs(parameter.param_vehicle.steering.v_max):
             return False, None, None
         else:
             return True, input_a, input_sa_rate
@@ -248,15 +312,19 @@ class MotionPrimitiveGenerator:
 
             for state in primitive.state_list:
                 # add mirrored state into list
-                state_mirrored = KSState(position=np.array([state.position[0], -state.position[1]]),
-                                       velocity=state.velocity,
-                                       steering_angle=-state.steering_angle,
-                                       orientation=-state.orientation,
-                                       time_step=state.time_step)
+                state_mirrored = KSState(
+                    position=np.array([state.position[0], -state.position[1]]),
+                    velocity=state.velocity,
+                    steering_angle=-state.steering_angle,
+                    orientation=-state.orientation,
+                    time_step=state.time_step,
+                )
 
                 list_states_mirrored.append(state_mirrored)
 
-            primitive_mirrored = Trajectory(initial_time_step=0, state_list=list_states_mirrored)
+            primitive_mirrored = Trajectory(
+                initial_time_step=0, state_list=list_states_mirrored
+            )
 
             if not cls.is_identical(primitive, primitive_mirrored):
                 list_motion_primitives_mirrored.append(primitive_mirrored)
@@ -270,9 +338,11 @@ class MotionPrimitiveGenerator:
         """
         list_results = []
         for state1, state2 in zip(primitive.state_list, primitive_mirrored.state_list):
-            if np.isclose(state1.position[1], state2.position[1]) and \
-                    np.isclose(state1.steering_angle, state2.steering_angle) and \
-                    np.isclose(state1.orientation, state2.orientation):
+            if (
+                np.isclose(state1.position[1], state2.position[1])
+                and np.isclose(state1.steering_angle, state2.steering_angle)
+                and np.isclose(state1.orientation, state2.orientation)
+            ):
                 list_results.append(True)
             else:
                 list_results.append(False)
@@ -295,8 +365,14 @@ class MotionPrimitiveGenerator:
                     state_final_pp = primitive_predecessor.state_list[-1]
                     state_initial_ps = primitive_successor.state_list[0]
 
-                    if abs(state_final_pp.velocity - state_initial_ps.velocity) < 0.02 and \
-                            abs(state_final_pp.steering_angle - state_initial_ps.steering_angle) < 0.02:
+                    if (
+                        abs(state_final_pp.velocity - state_initial_ps.velocity) < 0.02
+                        and abs(
+                            state_final_pp.steering_angle
+                            - state_initial_ps.steering_angle
+                        )
+                        < 0.02
+                    ):
                         count_successors += 1
 
                 list_count_successors.append(count_successors)
@@ -321,7 +397,9 @@ class MotionPrimitiveGenerator:
 
             while count_segments_primitives < cls.parameter.num_segments_trajectory:
                 # retrieve primitive
-                primitive_predecessor = copy.deepcopy(list_motion_primitives[idx_primitive])
+                primitive_predecessor = copy.deepcopy(
+                    list_motion_primitives[idx_primitive]
+                )
                 list_primitive.append(primitive_predecessor)
                 list_successors_primitive_predecessor = []
                 count_segments_primitives += 1
@@ -334,8 +412,14 @@ class MotionPrimitiveGenerator:
                     state_final_pp = primitive_predecessor.state_list[-1]
                     state_initial_ps = primitive_successor.state_list[0]
 
-                    if abs(state_final_pp.velocity - state_initial_ps.velocity) < 0.02 and \
-                            abs(state_final_pp.steering_angle - state_initial_ps.steering_angle) < 0.02:
+                    if (
+                        abs(state_final_pp.velocity - state_initial_ps.velocity) < 0.02
+                        and abs(
+                            state_final_pp.steering_angle
+                            - state_initial_ps.steering_angle
+                        )
+                        < 0.02
+                    ):
                         list_successors_primitive_predecessor.append(j)
 
                 # start over if a primitive does not have a valid successor
@@ -381,31 +465,44 @@ class MotionPrimitiveGenerator:
             list_y = [state.position[1] for state in list_states_final]
             plt.xlim([min(list_x) - 2, max(list_x) + 2])
             plt.ylim([min(list_y) - 2, max(list_y) + 2])
-            plt.axis('equal')
+            plt.axis("equal")
             plt.show()
 
             # create output trajectory from state list of motion primitives
             rear_ax_dist = cls.parameter.param_vehicle.b
             new_state_list = list()
             for state in list_states_final:
-                kwarg = {'position': state.position + np.array([rear_ax_dist * np.cos(state.orientation),
-                                                                rear_ax_dist * np.sin(state.orientation)]),
-                         'velocity': state.velocity,
-                         'steering_angle': state.steering_angle,
-                         'orientation': state.orientation,
-                         'time_step': state.time_step}
+                kwarg = {
+                    "position": state.position
+                    + np.array(
+                        [
+                            rear_ax_dist * np.cos(state.orientation),
+                            rear_ax_dist * np.sin(state.orientation),
+                        ]
+                    ),
+                    "velocity": state.velocity,
+                    "steering_angle": state.steering_angle,
+                    "orientation": state.orientation,
+                    "time_step": state.time_step,
+                }
                 new_state_list.append(KSState(**kwarg))
 
-            trajectory_simulated = Trajectory(initial_time_step=0, state_list=new_state_list)
+            trajectory_simulated = Trajectory(
+                initial_time_step=0, state_list=new_state_list
+            )
 
             # check feasibility of output trajectory
             with warnings.catch_warnings():
-                warnings.simplefilter('ignore')
+                warnings.simplefilter("ignore")
 
                 try:
-                    is_feasible_trajectory, _ = feasibility_checker.trajectory_feasibility(trajectory_simulated,
-                                                                                           cls.parameter.vehicle_dynamics,
-                                                                                           cls.parameter.dt)
+                    is_feasible_trajectory, _ = (
+                        feasibility_checker.trajectory_feasibility(
+                            trajectory_simulated,
+                            cls.parameter.vehicle_dynamics,
+                            cls.parameter.dt,
+                        )
+                    )
                 except:
                     break
 
@@ -419,29 +516,41 @@ class MotionPrimitiveGenerator:
         """
         # create XML content
         node_xml = cls.create_xml_node(list_motion_primitives)
-        node_xml_prettified = minidom.parseString(et.tostring(node_xml)).toprettyxml(indent="   ")
+        node_xml_prettified = minidom.parseString(et.tostring(node_xml)).toprettyxml(
+            indent="   "
+        )
         dir_output = cls.parameter.dir_output
         # compute rounded step sizes for velocity and steering angle
         if cls.parameter.num_sample_velocity == 1:
             step_v = 0
         else:
-            step_v = round((cls.parameter.velocity_sample_max - cls.parameter.velocity_sample_min) /
-                           (cls.parameter.num_sample_velocity - 1), 2)
+            step_v = round(
+                (cls.parameter.velocity_sample_max - cls.parameter.velocity_sample_min)
+                / (cls.parameter.num_sample_velocity - 1),
+                2,
+            )
 
         if cls.parameter.num_sample_steering_angle == 1:
             step_sa = 0
         else:
-            step_sa = round(cls.parameter.steering_angle_sample_max * 2 /
-                            (cls.parameter.num_sample_steering_angle - 1) / 2, 2)
+            step_sa = round(
+                cls.parameter.steering_angle_sample_max
+                * 2
+                / (cls.parameter.num_sample_steering_angle - 1)
+                / 2,
+                2,
+            )
 
-        file_name = "V_{}_{}_Vstep_{}_SA_{}_{}_SAstep_{}_T_{}_Model_{}.xml".format(cls.parameter.velocity_sample_min,
-                                                                                   cls.parameter.velocity_sample_max,
-                                                                                   step_v,
-                                                                                   -cls.parameter.steering_angle_sample_max,
-                                                                                   cls.parameter.steering_angle_sample_max,
-                                                                                   step_sa,
-                                                                                   round(cls.parameter.duration, 1),
-                                                                                   cls.parameter.name_vehicle)
+        file_name = "V_{}_{}_Vstep_{}_SA_{}_{}_SAstep_{}_T_{}_Model_{}.xml".format(
+            cls.parameter.velocity_sample_min,
+            cls.parameter.velocity_sample_max,
+            step_v,
+            -cls.parameter.steering_angle_sample_max,
+            cls.parameter.steering_angle_sample_max,
+            step_sa,
+            round(cls.parameter.duration, 1),
+            cls.parameter.name_vehicle,
+        )
 
         with open(os.path.join(dir_output, file_name), "w") as f:
             f.write(node_xml_prettified)
@@ -452,35 +561,35 @@ class MotionPrimitiveGenerator:
     @classmethod
     def create_xml_node(cls, list_motion_primitives):
         # create root tag
-        node_root = et.Element('MotionPrimitiveFile')
+        node_root = et.Element("MotionPrimitiveFile")
 
         # create vehicle type tag
-        node_vehicle_type = et.SubElement(node_root, 'VehicleType')
+        node_vehicle_type = et.SubElement(node_root, "VehicleType")
         node_vehicle_type.text = cls.parameter.name_vehicle
 
         # create Trajectories tag
-        node_trajectories = et.SubElement(node_root, 'Trajectories')
+        node_trajectories = et.SubElement(node_root, "Trajectories")
 
         for motion_primitive in list_motion_primitives:
 
             # create a tag for individual motion_primitive
-            node_trajectory = et.SubElement(node_trajectories, 'Trajectory')
+            node_trajectory = et.SubElement(node_trajectories, "Trajectory")
 
             # add time duration tag
-            node_duration = et.SubElement(node_trajectory, 'Duration')
-            node_duration.set('unit', 'deci-second')
+            node_duration = et.SubElement(node_trajectory, "Duration")
+            node_duration.set("unit", "deci-second")
             node_duration.text = str(int(cls.parameter.duration * 10))
 
             list_states_primitive = motion_primitive.state_list
 
             # add start state
-            node_start = et.SubElement(node_trajectory, 'Initial')
-            node_x = et.SubElement(node_start, 'x')
-            node_y = et.SubElement(node_start, 'y')
-            node_sa = et.SubElement(node_start, 'steering_angle')
-            node_v = et.SubElement(node_start, 'velocity')
-            node_o = et.SubElement(node_start, 'orientation')
-            node_t = et.SubElement(node_start, 'time_step')
+            node_start = et.SubElement(node_trajectory, "Initial")
+            node_x = et.SubElement(node_start, "x")
+            node_y = et.SubElement(node_start, "y")
+            node_sa = et.SubElement(node_start, "steering_angle")
+            node_v = et.SubElement(node_start, "velocity")
+            node_o = et.SubElement(node_start, "orientation")
+            node_t = et.SubElement(node_start, "time_step")
 
             state_start = list_states_primitive[0]
 
@@ -492,13 +601,13 @@ class MotionPrimitiveGenerator:
             node_t.text = str(state_start.time_step)
 
             # add final state
-            node_final = et.SubElement(node_trajectory, 'Final')
-            node_x = et.SubElement(node_final, 'x')
-            node_y = et.SubElement(node_final, 'y')
-            node_sa = et.SubElement(node_final, 'steering_angle')
-            node_v = et.SubElement(node_final, 'velocity')
-            node_o = et.SubElement(node_final, 'orientation')
-            node_t = et.SubElement(node_final, 'time_step')
+            node_final = et.SubElement(node_trajectory, "Final")
+            node_x = et.SubElement(node_final, "x")
+            node_y = et.SubElement(node_final, "y")
+            node_sa = et.SubElement(node_final, "steering_angle")
+            node_v = et.SubElement(node_final, "velocity")
+            node_o = et.SubElement(node_final, "orientation")
+            node_t = et.SubElement(node_final, "time_step")
 
             state_final = list_states_primitive[-1]
 
@@ -512,17 +621,17 @@ class MotionPrimitiveGenerator:
             # add states in between
             list_states_in_between = list_states_primitive[1:-1]
 
-            node_path = et.SubElement(node_trajectory, 'Path')
+            node_path = et.SubElement(node_trajectory, "Path")
 
             for state in list_states_in_between:
-                node_state = et.SubElement(node_path, 'State')
+                node_state = et.SubElement(node_path, "State")
 
-                node_x = et.SubElement(node_state, 'x')
-                node_y = et.SubElement(node_state, 'y')
-                node_sa = et.SubElement(node_state, 'steering_angle')
-                node_v = et.SubElement(node_state, 'velocity')
-                node_o = et.SubElement(node_state, 'orientation')
-                node_t = et.SubElement(node_state, 'time_step')
+                node_x = et.SubElement(node_state, "x")
+                node_y = et.SubElement(node_state, "y")
+                node_sa = et.SubElement(node_state, "steering_angle")
+                node_v = et.SubElement(node_state, "velocity")
+                node_o = et.SubElement(node_state, "orientation")
+                node_t = et.SubElement(node_state, "time_step")
 
                 node_x.text = str(state.position[0])
                 node_y.text = str(state.position[1])

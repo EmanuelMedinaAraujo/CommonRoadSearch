@@ -5,9 +5,9 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 try:
-    mpl.use('Qt5Agg')
+    mpl.use("Qt5Agg")
 except ImportError:
-    mpl.use('TkAgg')
+    mpl.use("TkAgg")
 
 from commonroad.common.file_reader import CommonRoadFileReader
 from commonroad.visualization.mp_renderer import MPRenderer
@@ -21,8 +21,10 @@ from SMP.motion_planner.plot_config import StudentScriptPlotConfig
 
 def main():
     # configurations
-    path_scenario = '../../scenarios/tutorial/ZAM_Tutorial_Urban-3_2.xml'
-    file_motion_primitives = 'V_9.0_9.0_Vstep_0_SA_-0.2_0.2_SAstep_0.4_T_0.5_Model_BMW320i.xml'
+    path_scenario = "../../scenarios/tutorial/ZAM_Tutorial_Urban-3_2.xml"
+    file_motion_primitives = (
+        "V_9.0_9.0_Vstep_0_SA_-0.2_0.2_SAstep_0.4_T_0.5_Model_BMW320i.xml"
+    )
     config_plot = StudentScriptPlotConfig(DO_PLOT=True)
 
     # load scenario and planning problem set
@@ -37,7 +39,7 @@ def main():
     scenario.draw(renderer)
     planning_problem_set.draw(renderer)
 
-    plt.gca().set_aspect('equal')
+    plt.gca().set_aspect("equal")
     plt.margins(0, 0)
 
     renderer.render()
@@ -54,15 +56,18 @@ def main():
         # 2: (MotionPlanner.DepthLimitedSearch, "Depth Limited Search"),
         # 3: (MotionPlanner.UniformCostSearch, "Uniform Cost Search"),
         # 4: (MotionPlanner.GreedyBestFirstSearch, "Greedy Best First Search"),
-        5: (MotionPlanner.AStarSearch, "A* Search")
-
+        5: (MotionPlanner.AStarSearch, "A* Search"),
         # 6: (MotionPlanner.StudentMotionPlanner, "Student Planner"),
         # 7: (MotionPlanner.StudentMotionPlannerExample, "Student Planner Example")
     }
 
-    for (class_planner, name_planner) in dict_motion_planners.values():
-        planner = class_planner(scenario=scenario, planning_problem=planning_problem,
-                                automaton=automaton, plot_config=config_plot)
+    for class_planner, name_planner in dict_motion_planners.values():
+        planner = class_planner(
+            scenario=scenario,
+            planning_problem=planning_problem,
+            automaton=automaton,
+            plot_config=config_plot,
+        )
 
         # start search
         print(name_planner + " started..")
@@ -72,7 +77,7 @@ def main():
         plt.show()
 
 
-print('Done')
+print("Done")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

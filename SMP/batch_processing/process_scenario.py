@@ -9,8 +9,11 @@ from multiprocessing.context import Process
 from typing import Tuple, List
 import numpy as np
 
-from commonroad.common.solution import PlanningProblemSolution, Solution, \
-    CommonRoadSolutionWriter
+from commonroad.common.solution import (
+    PlanningProblemSolution,
+    Solution,
+    CommonRoadSolutionWriter,
+)
 from commonroad.planning.planning_problem import PlanningProblemSet, PlanningProblem
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.trajectory import Trajectory
@@ -26,13 +29,19 @@ from SMP.motion_planner.motion_planner import MotionPlanner, MotionPlannerType
 from SMP.motion_planner.plot_config import StudentScriptPlotConfig
 import SMP.batch_processing.timeout_config
 
-def get_planning_problem_and_id(planning_problem_set: PlanningProblemSet, planning_problem_idx) -> \
-        Tuple[PlanningProblem, int]:
-    return list(planning_problem_set.planning_problem_dict.values())[planning_problem_idx], \
-           list(planning_problem_set.planning_problem_dict.keys())[planning_problem_idx]
+
+def get_planning_problem_and_id(
+    planning_problem_set: PlanningProblemSet, planning_problem_idx
+) -> Tuple[PlanningProblem, int]:
+    return (
+        list(planning_problem_set.planning_problem_dict.values())[planning_problem_idx],
+        list(planning_problem_set.planning_problem_dict.keys())[planning_problem_idx],
+    )
 
 
-def solve_scenario(scenario, planning_problem, automaton, config: ScenarioConfig, result_dict) -> SearchResult:
+def solve_scenario(
+    scenario, planning_problem, automaton, config: ScenarioConfig, result_dict
+) -> SearchResult:
     scenario_id = str(scenario.scenario_id)
 
     error_msg = ""
@@ -47,21 +56,31 @@ def solve_scenario(scenario, planning_problem, automaton, config: ScenarioConfig
     time1 = time.perf_counter()
 
     try:
-        motion_planner = MotionPlanner.create(scenario, planning_problem, automaton=automaton,
-                                              plot_config=StudentScriptPlotConfig(DO_PLOT=False),
-                                              motion_planner_type=config.motion_planner_type)
-        list_of_list_of_states, list_of_motion_primitives, _ = motion_planner.execute_search()
+        motion_planner = MotionPlanner.create(
+            scenario,
+            planning_problem,
+            automaton=automaton,
+            plot_config=StudentScriptPlotConfig(DO_PLOT=False),
+            motion_planner_type=config.motion_planner_type,
+        )
+        list_of_list_of_states, list_of_motion_primitives, _ = (
+            motion_planner.execute_search()
+        )
     except Exception as err:
-        if str(err) == 'Time Out':
+        if str(err) == "Time Out":
             search_time_ms = get_search_time_in_ms(time1)
-            error_msg = "".join(traceback.format_exception(type(err), err, err.__traceback__))
+            error_msg = "".join(
+                traceback.format_exception(type(err), err, err.__traceback__)
+            )
 
             result = ResultType.TIMEOUT
         # TODO consider giving -1 back because evaluating it out with excel then will be easier
         else:
-            error_msg = "".join(traceback.format_exception(type(err), err, err.__traceback__))
+            error_msg = "".join(
+                traceback.format_exception(type(err), err, err.__traceback__)
+            )
             result = ResultType.EXCEPTION
-        
+
             search_time_ms = get_search_time_in_ms(time1)
     else:
         if list_of_list_of_states is None:
@@ -71,17 +90,32 @@ def solve_scenario(scenario, planning_problem, automaton, config: ScenarioConfig
             search_time_ms = get_search_time_in_ms(time1)
             result = ResultType.SUCCESS
 
-    result_dict[scenario_id] = SearchResult(scenario_id, result, search_time_ms, config.motion_planner_type, error_msg,
-                                            list_of_list_of_states)
+    result_dict[scenario_id] = SearchResult(
+        scenario_id,
+        result,
+        search_time_ms,
+        config.motion_planner_type,
+        error_msg,
+        list_of_list_of_states,
+    )
 
     return result_dict[scenario_id]
 
 
-def save_solution(scenario: Scenario, planning_problem_set: PlanningProblemSet, planning_problem_id: int,
-                  config: ScenarioConfig,
-                  computation_time_in_sec: float, list_of_list_of_states: List[List[KSState]], output_path: str = './',
-                  overwrite: bool = False, validate_solution: bool = True, save_gif: bool = False,
-                  output_path_gif: str = './gifs', logger: logging.Logger = logging.getLogger()) -> bool:
+def save_solution(
+    scenario: Scenario,
+    planning_problem_set: PlanningProblemSet,
+    planning_problem_id: int,
+    config: ScenarioConfig,
+    computation_time_in_sec: float,
+    list_of_list_of_states: List[List[KSState]],
+    output_path: str = "./",
+    overwrite: bool = False,
+    validate_solution: bool = True,
+    save_gif: bool = False,
+    output_path_gif: str = "./gifs",
+    logger: logging.Logger = logging.getLogger(),
+) -> bool:
     """
 
     :param scenario:
@@ -102,21 +136,26 @@ def save_solution(scenario: Scenario, planning_problem_set: PlanningProblemSet, 
     vehicle_params = VehicleParameterMapping[config.vehicle_type.name].value
 
     # create solution object for benchmark
-    pps = PlanningProblemSolution(planning_problem_id=planning_problem_id,
-                                  vehicle_type=config.vehicle_type,
-                                  vehicle_model=config.vehicle_model,
-                                  cost_function=config.cost_function,
-                                  trajectory=SearchResult.compute_solution_trajectory(list_of_list_of_states,
-                                                                                      vehicle_params.b))
+    pps = PlanningProblemSolution(
+        planning_problem_id=planning_problem_id,
+        vehicle_type=config.vehicle_type,
+        vehicle_model=config.vehicle_model,
+        cost_function=config.cost_function,
+        trajectory=SearchResult.compute_solution_trajectory(
+            list_of_list_of_states, vehicle_params.b
+        ),
+    )
 
-# The commentted line below uses a static methode of class to compute 
-# the solution trajectory, which is shorter than the trajectory generated 
-# by method create_trajectory_from_list_states() in SMP.motion_planner.utility
+    # The commentted line below uses a static methode of class to compute
+    # the solution trajectory, which is shorter than the trajectory generated
+    # by method create_trajectory_from_list_states() in SMP.motion_planner.utility
 
-                                #   trajectory=SearchResult.compute_solution_trajectory(list_of_list_of_states,
-                                #                                                       vehicle_params.b))
+    #   trajectory=SearchResult.compute_solution_trajectory(list_of_list_of_states,
+    #                                                       vehicle_params.b))
 
-    solution = Solution(scenario.scenario_id, [pps], computation_time=computation_time_in_sec)
+    solution = Solution(
+        scenario.scenario_id, [pps], computation_time=computation_time_in_sec
+    )
 
     # write solution to a xml file
     csw = CommonRoadSolutionWriter(solution)
@@ -124,8 +163,12 @@ def save_solution(scenario: Scenario, planning_problem_set: PlanningProblemSet, 
     if save_gif:
         # create directory if it does not exist
         os.makedirs(output_path_gif, exist_ok=True)
-        hf.save_gif2(scenario, planning_problem_set.find_planning_problem_by_id(planning_problem_id), pps.trajectory,
-                     output_path=output_path_gif)
+        hf.save_gif2(
+            scenario,
+            planning_problem_set.find_planning_problem_by_id(planning_problem_id),
+            pps.trajectory,
+            output_path=output_path_gif,
+        )
 
     # create directory if not exists
     os.makedirs(output_path, exist_ok=True)
@@ -144,7 +187,9 @@ def save_solution(scenario: Scenario, planning_problem_set: PlanningProblemSet, 
     return True
 
 
-def append_element_2_list_in_dict(the_dict, key, new_element, immutable_dictionary: bool = True):
+def append_element_2_list_in_dict(
+    the_dict, key, new_element, immutable_dictionary: bool = True
+):
     if immutable_dictionary:
         foo_list = the_dict[key]
         foo_list.append(new_element)
@@ -153,9 +198,15 @@ def append_element_2_list_in_dict(the_dict, key, new_element, immutable_dictiona
         the_dict[key].append(new_element)
 
 
-def process_scenario(scenario_id, scenario_loader: ScenarioLoader, configuration_dict, def_automaton: ManeuverAutomaton,
-                     result_dict, semaphore: Semaphore = None, logger: logging.Logger = logging.getLogger()
-                     ):
+def process_scenario(
+    scenario_id,
+    scenario_loader: ScenarioLoader,
+    configuration_dict,
+    def_automaton: ManeuverAutomaton,
+    result_dict,
+    semaphore: Semaphore = None,
+    logger: logging.Logger = logging.getLogger(),
+):
     verbose = hf.str2bool(configuration_dict["setting"]["verbose"])
     # noinspection PyBroadException
     try:
@@ -169,15 +220,21 @@ def process_scenario(scenario_id, scenario_loader: ScenarioLoader, configuration
             # if the defined vehicle type differs from the default one then load custom automaton instead
             try:
                 automaton = ManeuverAutomaton.load_automaton(
-                    hf.get_default_automaton_by_veh_id(scenario_config.vehicle_type_id, configuration_dict))
+                    hf.get_default_automaton_by_veh_id(
+                        scenario_config.vehicle_type_id, configuration_dict
+                    )
+                )
             except FileNotFoundError:
                 try:
                     automaton = ManeuverAutomaton.generate_automaton(
-                        hf.get_default_motion_primitive_file_by_veh_id(scenario_config.vehicle_type_id,
-                                                                       configuration_dict))
+                        hf.get_default_motion_primitive_file_by_veh_id(
+                            scenario_config.vehicle_type_id, configuration_dict
+                        )
+                    )
                 except FileNotFoundError:
                     raise FileNotFoundError(
-                        f"No default MotionAutomaton found for vehicle type id: {scenario_config.vehicle_type}")
+                        f"No default MotionAutomaton found for vehicle type id: {scenario_config.vehicle_type}"
+                    )
         else:
             # use the default automaton file if there is nothing else specified
             automaton = copy.deepcopy(def_automaton)
@@ -189,21 +246,29 @@ def process_scenario(scenario_id, scenario_loader: ScenarioLoader, configuration
         # Retrieve Planning Problem with given index (for cooperative scenario:0, 1, 2, ..., otherwise: 0)
         # with the GSMP approach we do not want to solve cooperative scenarios so in all cases we will have
         # only one planning problem
-        planning_problem, planning_problem_id = get_planning_problem_and_id(planning_problem_set,
-                                                                            scenario_config.planning_problem_idx)
+        planning_problem, planning_problem_id = get_planning_problem_and_id(
+            planning_problem_set, scenario_config.planning_problem_idx
+        )
 
         # Initial result
         result_dict[scenario_id] = None
 
-        p = Process(target=solve_scenario, args=(scenario, planning_problem, automaton, scenario_config, result_dict))
+        p = Process(
+            target=solve_scenario,
+            args=(scenario, planning_problem, automaton, scenario_config, result_dict),
+        )
         p.start()
         p.join(timeout=scenario_config.timeout)
 
         # if TIMEOUT
         if p.is_alive():
             p.terminate()
-            result_dict[scenario_id] = SearchResult(scenario_id, ResultType.TIMEOUT, scenario_config.timeout,
-                                                    scenario_config.motion_planner_type)
+            result_dict[scenario_id] = SearchResult(
+                scenario_id,
+                ResultType.TIMEOUT,
+                scenario_config.timeout,
+                scenario_config.motion_planner_type,
+            )
 
         if isinstance(result_dict[scenario_id], SearchResult):
             search_result: SearchResult = result_dict[scenario_id]
@@ -211,41 +276,58 @@ def process_scenario(scenario_id, scenario_loader: ScenarioLoader, configuration
             if search_result.result == ResultType.TIMEOUT:
                 if verbose:
                     print(
-                        f"\n{scenario_id:<25}  {search_result.result}  Timeout time [s]:  {int(scenario_config.timeout)}")
-                append_element_2_list_in_dict(result_dict, ResultType.TIMEOUT, scenario_id)
+                        f"\n{scenario_id:<25}  {search_result.result}  Timeout time [s]:  {int(scenario_config.timeout)}"
+                    )
+                append_element_2_list_in_dict(
+                    result_dict, ResultType.TIMEOUT, scenario_id
+                )
 
             elif search_result.result == ResultType.EXCEPTION:
                 if verbose:
-                    print(f"\n{scenario_id:<25}  {search_result.result}  {search_result.error_msg}")
-                append_element_2_list_in_dict(result_dict, ResultType.EXCEPTION, scenario_id)
+                    print(
+                        f"\n{scenario_id:<25}  {search_result.result}  {search_result.error_msg}"
+                    )
+                append_element_2_list_in_dict(
+                    result_dict, ResultType.EXCEPTION, scenario_id
+                )
 
             elif search_result.result == ResultType.FAILURE:
                 if verbose:
                     print(
                         f"\n{scenario_id:<25}  {search_result.result}  Computation time [ms]:  {int(search_result.search_time_ms)}"
-                        f"  <{scenario_config.motion_planner_type}>  DID NOT FIND a solution.")
-                append_element_2_list_in_dict(result_dict, ResultType.FAILURE, scenario_id)
+                        f"  <{scenario_config.motion_planner_type}>  DID NOT FIND a solution."
+                    )
+                append_element_2_list_in_dict(
+                    result_dict, ResultType.FAILURE, scenario_id
+                )
 
             else:
                 if verbose:
                     print(
                         f"\n{scenario_id:<25}  {search_result.result}  Computation time [ms]:  {int(search_result.search_time_ms)}  "
-                        f"<{scenario_config.motion_planner_type}>  FOUND a solution.")
+                        f"<{scenario_config.motion_planner_type}>  FOUND a solution."
+                    )
 
-                is_valid_solution = save_solution(scenario=scenario, planning_problem_set=planning_problem_set,
-                                                  planning_problem_id=planning_problem_id, config=scenario_config,
-                                                  computation_time_in_sec=search_result.search_time_sec,
-                                                  list_of_list_of_states=search_result.list_of_list_of_states,
-                                                  output_path=configuration_dict['setting']['output_path'],
-                                                  overwrite=hf.str2bool(configuration_dict['setting']['overwrite']),
-                                                  validate_solution=hf.str2bool(
-                                                      configuration_dict['setting']['validate_solution']),
-                                                  save_gif=hf.str2bool(
-                                                      configuration_dict['setting']['create_gif']),
-                                                  output_path_gif=configuration_dict['setting']['output_path_gif'],
-                                                  logger=logger)
+                is_valid_solution = save_solution(
+                    scenario=scenario,
+                    planning_problem_set=planning_problem_set,
+                    planning_problem_id=planning_problem_id,
+                    config=scenario_config,
+                    computation_time_in_sec=search_result.search_time_sec,
+                    list_of_list_of_states=search_result.list_of_list_of_states,
+                    output_path=configuration_dict["setting"]["output_path"],
+                    overwrite=hf.str2bool(configuration_dict["setting"]["overwrite"]),
+                    validate_solution=hf.str2bool(
+                        configuration_dict["setting"]["validate_solution"]
+                    ),
+                    save_gif=hf.str2bool(configuration_dict["setting"]["create_gif"]),
+                    output_path_gif=configuration_dict["setting"]["output_path_gif"],
+                    logger=logger,
+                )
                 if is_valid_solution:
-                    append_element_2_list_in_dict(result_dict, ResultType.SUCCESS, scenario_id)
+                    append_element_2_list_in_dict(
+                        result_dict, ResultType.SUCCESS, scenario_id
+                    )
                 else:
                     # replacing the search result in the statistics
                     tmp_sr = result_dict[scenario_id]
@@ -254,28 +336,41 @@ def process_scenario(scenario_id, scenario_loader: ScenarioLoader, configuration
                         result=ResultType.INVALID_SOLUTION,
                         search_time_ms=tmp_sr.search_time_ms,
                         motion_planner_type=scenario_config.motion_planner_type,
-                        list_of_list_of_states=tmp_sr.list_of_list_of_states)
+                        list_of_list_of_states=tmp_sr.list_of_list_of_states,
+                    )
 
-                    append_element_2_list_in_dict(result_dict, ResultType.INVALID_SOLUTION, scenario_id)
+                    append_element_2_list_in_dict(
+                        result_dict, ResultType.INVALID_SOLUTION, scenario_id
+                    )
     except Exception as err:
-        print("Something went wrong while processing scenario {:<30}]".format(scenario_id))
-        error_msg = "".join(traceback.format_exception(type(err), err, err.__traceback__))
+        print(
+            "Something went wrong while processing scenario {:<30}]".format(scenario_id)
+        )
+        error_msg = "".join(
+            traceback.format_exception(type(err), err, err.__traceback__)
+        )
         print(error_msg)
 
     if semaphore is not None:
         semaphore.release()
 
 
-def debug_scenario(scenario_id, scenario_loader: ScenarioLoader, configuration_dict, def_automaton: ManeuverAutomaton,
-                   result_dict, logger: logging.Logger = logging.getLogger(),
-                   verbose=False):
+def debug_scenario(
+    scenario_id,
+    scenario_loader: ScenarioLoader,
+    configuration_dict,
+    def_automaton: ManeuverAutomaton,
+    result_dict,
+    logger: logging.Logger = logging.getLogger(),
+    verbose=False,
+):
     # noinspection PyBroadException
     try:
         logger.debug("Start processing [{:<30}]".format(scenario_id))
 
         # Parse configuration dict
         scenario_config = ScenarioConfig(scenario_id, configuration_dict)
-        
+
         SMP.batch_processing.timeout_config.timeout = scenario_config.timeout
 
         # AUTOMATON preparation
@@ -283,15 +378,21 @@ def debug_scenario(scenario_id, scenario_loader: ScenarioLoader, configuration_d
             # if the defined vehicle type differs from the default one then load custom automaton instead
             try:
                 automaton = ManeuverAutomaton.load_automaton(
-                    hf.get_default_automaton_by_veh_id(scenario_config.vehicle_type_id, configuration_dict))
+                    hf.get_default_automaton_by_veh_id(
+                        scenario_config.vehicle_type_id, configuration_dict
+                    )
+                )
             except FileNotFoundError:
                 try:
                     automaton = ManeuverAutomaton.generate_automaton(
-                        hf.get_default_motion_primitive_file_by_veh_id(scenario_config.vehicle_type_id,
-                                                                       configuration_dict))
+                        hf.get_default_motion_primitive_file_by_veh_id(
+                            scenario_config.vehicle_type_id, configuration_dict
+                        )
+                    )
                 except FileNotFoundError:
                     raise FileNotFoundError(
-                        f"No default MotionAutomaton found for vehicle type id: {scenario_config.vehicle_type}")
+                        f"No default MotionAutomaton found for vehicle type id: {scenario_config.vehicle_type}"
+                    )
         else:
             # use the default automaton file if there is nothing else specified
             automaton = copy.deepcopy(def_automaton)
@@ -303,14 +404,17 @@ def debug_scenario(scenario_id, scenario_loader: ScenarioLoader, configuration_d
         # Retrieve Planning Problem with given index (for cooperative scenario:0, 1, 2, ..., otherwise: 0)
         # with the GSMP approach we do not want to solve cooperative scenarios so in all cases we will have
         # only one planning problem
-        planning_problem, planning_problem_id = get_planning_problem_and_id(planning_problem_set,
-                                                                            scenario_config.planning_problem_idx)
+        planning_problem, planning_problem_id = get_planning_problem_and_id(
+            planning_problem_set, scenario_config.planning_problem_idx
+        )
 
         # Initial result
         result_dict[scenario_id] = None
 
         # Solving scenario
-        solve_scenario(scenario, planning_problem, automaton, scenario_config, result_dict)
+        solve_scenario(
+            scenario, planning_problem, automaton, scenario_config, result_dict
+        )
 
         if isinstance(result_dict[scenario_id], SearchResult):
             search_result: SearchResult = result_dict[scenario_id]
@@ -318,43 +422,70 @@ def debug_scenario(scenario_id, scenario_loader: ScenarioLoader, configuration_d
             if search_result.result == ResultType.TIMEOUT:
                 if verbose:
                     print(
-                        f"\n{scenario_id:<25}  {search_result.result}  Timeout time [s]:  {int(scenario_config.timeout)}")
-                append_element_2_list_in_dict(result_dict, ResultType.TIMEOUT, scenario_id, immutable_dictionary=False)
+                        f"\n{scenario_id:<25}  {search_result.result}  Timeout time [s]:  {int(scenario_config.timeout)}"
+                    )
+                append_element_2_list_in_dict(
+                    result_dict,
+                    ResultType.TIMEOUT,
+                    scenario_id,
+                    immutable_dictionary=False,
+                )
 
             elif search_result.result == ResultType.EXCEPTION:
                 if verbose:
-                    print(f"\n{scenario_id:<25}  {search_result.result}  {search_result.error_msg}")
-                append_element_2_list_in_dict(result_dict, ResultType.EXCEPTION, scenario_id,
-                                              immutable_dictionary=False)
+                    print(
+                        f"\n{scenario_id:<25}  {search_result.result}  {search_result.error_msg}"
+                    )
+                append_element_2_list_in_dict(
+                    result_dict,
+                    ResultType.EXCEPTION,
+                    scenario_id,
+                    immutable_dictionary=False,
+                )
 
             elif search_result.result == ResultType.FAILURE:
                 if verbose:
                     print(
                         f"\n{scenario_id:<25}  {search_result.result}  Computation time [ms]:  {int(search_result.search_time_ms)}"
-                        f"  <{scenario_config.motion_planner_type}>  DID NOT FIND a solution.")
-                append_element_2_list_in_dict(result_dict, ResultType.FAILURE, scenario_id, immutable_dictionary=False)
+                        f"  <{scenario_config.motion_planner_type}>  DID NOT FIND a solution."
+                    )
+                append_element_2_list_in_dict(
+                    result_dict,
+                    ResultType.FAILURE,
+                    scenario_id,
+                    immutable_dictionary=False,
+                )
 
             else:
                 if verbose:
                     print(
                         f"\n{scenario_id:<25}  {search_result.result}  Computation time [ms]:  {int(search_result.search_time_ms)}  "
-                        f"<{scenario_config.motion_planner_type}>  FOUND a solution.")
+                        f"<{scenario_config.motion_planner_type}>  FOUND a solution."
+                    )
 
-                is_valid_solution = save_solution(scenario=scenario, planning_problem_set=planning_problem_set,
-                                                  planning_problem_id=planning_problem_id, config=scenario_config,
-                                                  computation_time_in_sec=search_result.search_time_sec,
-                                                  list_of_list_of_states=search_result.list_of_list_of_states,
-                                                  output_path=configuration_dict['setting']['output_path'],
-                                                  overwrite=hf.str2bool(configuration_dict['setting']['overwrite']),
-                                                  validate_solution=hf.str2bool(
-                                                      configuration_dict['setting']['validate_solution']),
-                                                  save_gif=hf.str2bool(
-                                                      configuration_dict['setting']['create_gif']),
-                                                  output_path_gif=configuration_dict['setting']['output_path_gif'],
-                                                  logger=logger)
+                is_valid_solution = save_solution(
+                    scenario=scenario,
+                    planning_problem_set=planning_problem_set,
+                    planning_problem_id=planning_problem_id,
+                    config=scenario_config,
+                    computation_time_in_sec=search_result.search_time_sec,
+                    list_of_list_of_states=search_result.list_of_list_of_states,
+                    output_path=configuration_dict["setting"]["output_path"],
+                    overwrite=hf.str2bool(configuration_dict["setting"]["overwrite"]),
+                    validate_solution=hf.str2bool(
+                        configuration_dict["setting"]["validate_solution"]
+                    ),
+                    save_gif=hf.str2bool(configuration_dict["setting"]["create_gif"]),
+                    output_path_gif=configuration_dict["setting"]["output_path_gif"],
+                    logger=logger,
+                )
                 if is_valid_solution:
-                    append_element_2_list_in_dict(result_dict, ResultType.SUCCESS, scenario_id,
-                                                  immutable_dictionary=False)
+                    append_element_2_list_in_dict(
+                        result_dict,
+                        ResultType.SUCCESS,
+                        scenario_id,
+                        immutable_dictionary=False,
+                    )
                 else:
                     # replacing the search result in the statistics
                     tmp_sr = result_dict[scenario_id]
@@ -363,11 +494,20 @@ def debug_scenario(scenario_id, scenario_loader: ScenarioLoader, configuration_d
                         result=ResultType.INVALID_SOLUTION,
                         search_time_ms=tmp_sr.search_time_ms,
                         motion_planner_type=scenario_config.motion_planner_type,
-                        list_of_list_of_states=tmp_sr.list_of_list_of_states)
+                        list_of_list_of_states=tmp_sr.list_of_list_of_states,
+                    )
 
-                    append_element_2_list_in_dict(result_dict, ResultType.INVALID_SOLUTION, scenario_id,
-                                                  immutable_dictionary=False)
+                    append_element_2_list_in_dict(
+                        result_dict,
+                        ResultType.INVALID_SOLUTION,
+                        scenario_id,
+                        immutable_dictionary=False,
+                    )
     except Exception as err:
-        print("Something went wrong while processing scenario {:<30}]".format(scenario_id))
-        error_msg = "".join(traceback.format_exception(type(err), err, err.__traceback__))
+        print(
+            "Something went wrong while processing scenario {:<30}]".format(scenario_id)
+        )
+        error_msg = "".join(
+            traceback.format_exception(type(err), err, err.__traceback__)
+        )
         print(error_msg)

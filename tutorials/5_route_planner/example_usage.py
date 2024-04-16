@@ -8,9 +8,11 @@ from commonroad_route_planner.utility.visualization import visualize_route
 if __name__ == "__main__":
     # ========== initialization =========== #
     path_scenarios = os.path.join(os.getcwd(), "../../scenarios/exercise/")
-    id_scenario = 'USA_US101-22_4_T-1'
+    id_scenario = "USA_US101-22_4_T-1"
     # read in scenario and planning problem set
-    scenario, planning_problem_set = CommonRoadFileReader(f"{path_scenarios}{id_scenario}.xml").open()
+    scenario, planning_problem_set = CommonRoadFileReader(
+        f"{path_scenarios}{id_scenario}.xml"
+    ).open()
     # retrieve the first planning problem in the problem set
     planning_problem = list(planning_problem_set.planning_problem_dict.values())[0]
 
@@ -31,4 +33,10 @@ if __name__ == "__main__":
     # route = candidate_holder.retrieve_best_route_by_orientation()
 
     # ========== visualization =========== #
-    visualize_route(route, scenario, planning_problem, draw_route_lanelets=True, draw_reference_path=True)
+    visualize_route(
+        route,
+        scenario,
+        planning_problem,
+        draw_route_lanelets=True,
+        draw_reference_path=True,
+    )

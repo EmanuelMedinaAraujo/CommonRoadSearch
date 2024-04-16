@@ -12,9 +12,15 @@ class StudentMotionPlannerExample(GreedyBestFirstSearch):
     Here as an example, the planner is inherited from the GreedyBestFirstSearch planner.
     """
 
-    def __init__(self, scenario, planningProblem, automata, plot_config=DefaultPlotConfig):
-        super().__init__(scenario=scenario, planningProblem=planningProblem, automaton=automata,
-                         plot_config=plot_config)
+    def __init__(
+        self, scenario, planningProblem, automata, plot_config=DefaultPlotConfig
+    ):
+        super().__init__(
+            scenario=scenario,
+            planningProblem=planningProblem,
+            automaton=automata,
+            plot_config=plot_config,
+        )
 
     def evaluation_function(self, node_current: PriorityNode) -> float:
         # copied the implementation in GreedyBestFirstSearch
@@ -34,25 +40,31 @@ class StudentMotionPlannerExample(GreedyBestFirstSearch):
         if distStartState < distLastState:
             return np.inf
 
-        cost_lanelet, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(path_last)
+        cost_lanelet, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(
+            path_last
+        )
 
         if cost_lanelet is None or final_lanelet_id[0] is None:
             return np.inf
 
         self.calc_path_efficiency(path_last)
-        self.num_obstacles_in_lanelet_at_time_step(path_last[-1].time_step, final_lanelet_id[0])
+        self.num_obstacles_in_lanelet_at_time_step(
+            path_last[-1].time_step, final_lanelet_id[0]
+        )
         self.is_goal_in_lane(final_lanelet_id[0])
         if self.dict_lanelets_costs[final_lanelet_id[0]] == -1:
             return np.inf
         factor = 1
         # if self.dict_lanelets_costs[final_lanelet_id[0]] > self.dict_lanelets_costs[start_lanelet_id[0]]:
         #    return np.inf
-        #if self.dict_lanelets_costs[final_lanelet_id[0]] < self.dict_lanelets_costs[start_lanelet_id[0]]:
+        # if self.dict_lanelets_costs[final_lanelet_id[0]] < self.dict_lanelets_costs[start_lanelet_id[0]]:
         #    factor = factor * 0.1
 
         angleToGoal = self.calc_angle_to_goal(path_last[-1])
 
-        orientationToGoalDiff = self.calc_orientation_diff(angleToGoal, path_last[-1].orientation)
+        orientationToGoalDiff = self.calc_orientation_diff(
+            angleToGoal, path_last[-1].orientation
+        )
         # if final_lanelet_id[0] in self.list_ids_lanelets_goal:
         #     factor = factor * 0.07
         pathLength = self.calc_travelled_distance(path_last)
@@ -62,9 +74,11 @@ class StudentMotionPlannerExample(GreedyBestFirstSearch):
             factor = factor * 0.00001
         # elif math.pi - abs(abs(laneletOrientationAtPosition - path[-1].orientation)
 
-        if hasattr(self.planningProblem.goal.state_list[0], 'velocity'):
-            v_mean_goal = (self.planningProblem.goal.state_list[0].velocity.start +
-                           self.planningProblem.goal.state_list[0].velocity.end) / 2
+        if hasattr(self.planningProblem.goal.state_list[0], "velocity"):
+            v_mean_goal = (
+                self.planningProblem.goal.state_list[0].velocity.start
+                + self.planningProblem.goal.state_list[0].velocity.end
+            ) / 2
             dist_vel = abs(path_last[-1].velocity - v_mean_goal)
         else:
             dist_vel = 0
@@ -75,12 +89,14 @@ class StudentMotionPlannerExample(GreedyBestFirstSearch):
         weights[3] = 0.1
         weights[4] = 0.05
         weights[5] = 1
-        cost = weights[0] * (cost_lanelet / len(path_last)) + \
-               weights[1] * abs(orientationToGoalDiff) + \
-               weights[3] * cost_time + \
-               weights[2] * distLastState + \
-               weights[4] * (100 - pathLength) + \
-               weights[5] * dist_vel
+        cost = (
+            weights[0] * (cost_lanelet / len(path_last))
+            + weights[1] * abs(orientationToGoalDiff)
+            + weights[3] * cost_time
+            + weights[2] * distLastState
+            + weights[4] * (100 - pathLength)
+            + weights[5] * dist_vel
+        )
 
         if cost < 0:
             cost = 0
