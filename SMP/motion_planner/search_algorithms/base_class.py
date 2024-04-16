@@ -21,8 +21,10 @@ from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.state import InitialState, KSState
 from commonroad.scenario.trajectory import Trajectory
 from commonroad_dc.boundary import boundary
-from commonroad_dc.collision.collision_detection.pycrcc_collision_dispatch import create_collision_checker, \
-    create_collision_object
+from commonroad_dc.collision.collision_detection.pycrcc_collision_dispatch import (
+    create_collision_checker,
+    create_collision_object,
+)
 from commonroad_dc.feasibility.vehicle_dynamics import VehicleParameterMapping
 
 from SMP.maneuver_automaton.maneuver_automaton import ManeuverAutomaton
@@ -38,8 +40,13 @@ class SearchBaseClass(ABC):
     A bunch of helper functions for computing the heuristic cost are provided for your convenience.
     """
 
-    def __init__(self, scenario: Scenario, planningProblem: PlanningProblem, automaton: ManeuverAutomaton,
-                 plot_config: Type[PlotConfig] = DefaultPlotConfig):
+    def __init__(
+        self,
+        scenario: Scenario,
+        planningProblem: PlanningProblem,
+        automaton: ManeuverAutomaton,
+        plot_config: Type[PlotConfig] = DefaultPlotConfig,
+    ):
         """
         Initialization of class BaseMotionPlanner.
         """
@@ -51,12 +58,15 @@ class SearchBaseClass(ABC):
 
         vehicle_params = VehicleParameterMapping[self.automaton.type_vehicle.name].value
         self.rear_ax_dist = vehicle_params.b
+        self.wheel_base = vehicle_params.a + vehicle_params.b
 
         # create necessary attributes
         self.lanelet_network = self.scenario.lanelet_network
         self.list_obstacles = self.scenario.obstacles
         self.state_initial: InitialState = self.planningProblem.initial_state
-        self.motion_primitive_initial = automaton.create_initial_motion_primitive(planningProblem)
+        self.motion_primitive_initial = automaton.create_initial_motion_primitive(
+            planningProblem
+        )
         self.list_ids_lanelets_initial = []
         self.list_ids_lanelets_goal = []
         self.time_desired = None
@@ -81,12 +91,12 @@ class SearchBaseClass(ABC):
         https://hynek.me/articles/hasattr/
         """
         # if hasattr(self.state_initial, 'yaw_rate'):
-        if getattr(self.state_initial,"yaw_rate") != None:
+        if getattr(self.state_initial, "yaw_rate") != None:
             # delattr(self.state_initial, 'yaw_rate')
             del self.state_initial.yaw_rate
 
         # if hasattr(self.state_initial, 'slip_angle'):
-        if getattr(self.state_initial,"slip_angle") != None:
+        if getattr(self.state_initial, "slip_angle") != None:
             del self.state_initial.slip_angle
 
         # parse planning problem
@@ -99,9 +109,9 @@ class SearchBaseClass(ABC):
         """
         self.collision_checker = create_collision_checker(self.scenario)
         # triangulate road boundary
-        _, shapegroup_triangles_boundary = boundary.create_road_boundary_obstacle(scenario,
-                                                                                  method='aligned_triangulation',
-                                                                                  axis=2)
+        _, shapegroup_triangles_boundary = boundary.create_road_boundary_obstacle(
+            scenario, method="aligned_triangulation", axis=2
+        )
         # add road boundary into collision checker
         self.collision_checker.add_collision_object(shapegroup_triangles_boundary)
 
@@ -109,55 +119,80 @@ class SearchBaseClass(ABC):
         """
         Parses the given planning problem, and computes related attributes.
         """
-        assert isinstance(self.planningProblem, PlanningProblem), "Given planning problem is not valid!"
+        assert isinstance(
+            self.planningProblem, PlanningProblem
+        ), "Given planning problem is not valid!"
 
         # get lanelet id of the initial state
-        self.list_ids_lanelets_initial = self.scenario.lanelet_network.find_lanelet_by_position(
-            [self.planningProblem.initial_state.position])[0]
+        self.list_ids_lanelets_initial = (
+            self.scenario.lanelet_network.find_lanelet_by_position(
+                [self.planningProblem.initial_state.position]
+            )[0]
+        )
 
         # get lanelet id of the goal region, which can be of different types
         self.list_ids_lanelets_goal = None
-        if hasattr(self.planningProblem.goal.state_list[0], 'position'):
-            if hasattr(self.planningProblem.goal.state_list[0].position, 'center'):
-                self.list_ids_lanelets_goal = self.scenario.lanelet_network.find_lanelet_by_position(
-                    [self.planningProblem.goal.state_list[0].position.center])[0]
+        if hasattr(self.planningProblem.goal.state_list[0], "position"):
+            if hasattr(self.planningProblem.goal.state_list[0].position, "center"):
+                self.list_ids_lanelets_goal = (
+                    self.scenario.lanelet_network.find_lanelet_by_position(
+                        [self.planningProblem.goal.state_list[0].position.center]
+                    )[0]
+                )
 
-            elif hasattr(self.planningProblem.goal.state_list[0].position, 'shapes'):
-                self.list_ids_lanelets_goal = self.scenario.lanelet_network.find_lanelet_by_position(
-                    [self.planningProblem.goal.state_list[0].position.shapes[0].center])[0]
-                self.planningProblem.goal.state_list[0].position.center = \
+            elif hasattr(self.planningProblem.goal.state_list[0].position, "shapes"):
+                self.list_ids_lanelets_goal = (
+                    self.scenario.lanelet_network.find_lanelet_by_position(
+                        [
+                            self.planningProblem.goal.state_list[0]
+                            .position.shapes[0]
+                            .center
+                        ]
+                    )[0]
+                )
+                self.planningProblem.goal.state_list[0].position.center = (
                     self.planningProblem.goal.state_list[0].position.shapes[0].center
+                )
 
         # set attributes with given planning problem
-        if hasattr(self.planningProblem.goal.state_list[0], 'time_step'):
+        if hasattr(self.planningProblem.goal.state_list[0], "time_step"):
             self.time_desired = self.planningProblem.goal.state_list[0].time_step
         else:
             self.time_desired = Interval(0, np.inf)
 
         self.position_desired = None
-        if hasattr(self.planningProblem.goal.state_list[0], 'position'):
-            if hasattr(self.planningProblem.goal.state_list[0].position, 'vertices'):
-                self.position_desired = self.calc_goal_interval(self.planningProblem.goal.state_list[0].position.vertices)
+        if hasattr(self.planningProblem.goal.state_list[0], "position"):
+            if hasattr(self.planningProblem.goal.state_list[0].position, "vertices"):
+                self.position_desired = self.calc_goal_interval(
+                    self.planningProblem.goal.state_list[0].position.vertices
+                )
 
-            elif hasattr(self.planningProblem.goal.state_list[0].position, 'center'):
+            elif hasattr(self.planningProblem.goal.state_list[0].position, "center"):
                 x = self.planningProblem.goal.state_list[0].position.center[0]
                 y = self.planningProblem.goal.state_list[0].position.center[1]
-                self.position_desired = [Interval(start=x, end=x), Interval(start=y, end=y)]
+                self.position_desired = [
+                    Interval(start=x, end=x),
+                    Interval(start=y, end=y),
+                ]
 
-        if hasattr(self.planningProblem.goal.state_list[0], 'velocity'):
+        if hasattr(self.planningProblem.goal.state_list[0], "velocity"):
             self.velocity_desired = self.planningProblem.goal.state_list[0].velocity
         else:
             self.velocity_desired = Interval(0, np.inf)
 
-        if hasattr(self.planningProblem.goal.state_list[0], 'orientation'):
-            self.orientation_desired = self.planningProblem.goal.state_list[0].orientation
+        if hasattr(self.planningProblem.goal.state_list[0], "orientation"):
+            self.orientation_desired = self.planningProblem.goal.state_list[
+                0
+            ].orientation
         else:
             self.orientation_desired = Interval(-math.pi, math.pi)
 
         # create necessary attributes
-        if hasattr(self.planningProblem.goal.state_list[0], 'position'):
-            self.distance_initial = SearchBaseClass.distance(self.planningProblem.initial_state.position,
-                                                             self.planningProblem.goal.state_list[0].position.center)
+        if hasattr(self.planningProblem.goal.state_list[0], "position"):
+            self.distance_initial = SearchBaseClass.distance(
+                self.planningProblem.initial_state.position,
+                self.planningProblem.goal.state_list[0].position.center,
+            )
         else:
             self.distance_initial = 0
 
@@ -179,36 +214,59 @@ class SearchBaseClass(ABC):
             # calculate costs for lanelets, this is a recursive method
             for ids_lanelet_goal in self.list_ids_lanelets_goal:
                 list_lanelets_visited = []
-                lanelet_goal = self.scenario.lanelet_network.find_lanelet_by_id(ids_lanelet_goal)
+                lanelet_goal = self.scenario.lanelet_network.find_lanelet_by_id(
+                    ids_lanelet_goal
+                )
                 self.calc_lanelet_cost(lanelet_goal, 1, list_lanelets_visited)
 
     @abstractmethod
-    def execute_search(self) -> Tuple[Union[None, List[List[KSState]]], Union[None, List[MotionPrimitive]], Any]:
+    def execute_search(
+        self,
+    ) -> Tuple[
+        Union[None, List[List[KSState]]], Union[None, List[MotionPrimitive]], Any
+    ]:
         """
         The actual search algorithms are implemented in the children classes.
         """
         pass
 
     def plot_solution(self, path_solution, node_status, list_states_nodes):
-        node_status = update_visualization(primitive=path_solution[-1], status=MotionPrimitiveStatus.SOLUTION,
-                                           dict_node_status=node_status, path_fig=self.path_fig,
-                                           config=self.config_plot,
-                                           count=len(list_states_nodes))
+        node_status = update_visualization(
+            primitive=path_solution[-1],
+            status=MotionPrimitiveStatus.SOLUTION,
+            dict_node_status=node_status,
+            path_fig=self.path_fig,
+            config=self.config_plot,
+            count=len(list_states_nodes),
+        )
         list_states_nodes.append(copy.copy(node_status))
         for prim in path_solution:
-            node_status = update_visualization(primitive=prim, status=MotionPrimitiveStatus.SOLUTION,
-                                               dict_node_status=node_status, path_fig=self.path_fig,
-                                               config=self.config_plot,
-                                               count=len(list_states_nodes))
+            node_status = update_visualization(
+                primitive=prim,
+                status=MotionPrimitiveStatus.SOLUTION,
+                dict_node_status=node_status,
+                path_fig=self.path_fig,
+                config=self.config_plot,
+                count=len(list_states_nodes),
+            )
         list_states_nodes.append(copy.copy(node_status))
         return list_states_nodes
 
-    def plot_colliding_primitives(self, current_node: Union[Node, PriorityNode], path_translated, node_status,
-                                  list_states_nodes):
-        node_status = update_visualization(primitive=[current_node.list_paths[-1][-1]] + path_translated,
-                                           status=MotionPrimitiveStatus.INVALID, dict_node_status=node_status,
-                                           path_fig=self.path_fig, config=self.config_plot,
-                                           count=len(list_states_nodes))
+    def plot_colliding_primitives(
+        self,
+        current_node: Union[Node, PriorityNode],
+        path_translated,
+        node_status,
+        list_states_nodes,
+    ):
+        node_status = update_visualization(
+            primitive=[current_node.list_paths[-1][-1]] + path_translated,
+            status=MotionPrimitiveStatus.INVALID,
+            dict_node_status=node_status,
+            path_fig=self.path_fig,
+            config=self.config_plot,
+            count=len(list_states_nodes),
+        )
         if self.config_plot.PLOT_COLLISION_STEPS and self.config_plot.DO_PLOT:
             list_states_nodes.append(copy.copy(node_status))
 
@@ -244,11 +302,17 @@ class SearchBaseClass(ABC):
         index_closestVert = SearchBaseClass.find_closest_vertex(centerVertices, pos)
         if index_closestVert + 1 >= centerVertices.size / 2.0:
             index_closestVert = index_closestVert - 1
-        return math.atan2(centerVertices[index_closestVert + 1][1] - centerVertices[index_closestVert][1],
-                          centerVertices[index_closestVert + 1][0] - centerVertices[index_closestVert][0])
+        return math.atan2(
+            centerVertices[index_closestVert + 1][1]
+            - centerVertices[index_closestVert][1],
+            centerVertices[index_closestVert + 1][0]
+            - centerVertices[index_closestVert][0],
+        )
 
     @staticmethod
-    def calc_dist_to_closets_point_on_line(vertexA: np.ndarray, vertexB: np.ndarray, pos: np.ndarray) -> float:
+    def calc_dist_to_closets_point_on_line(
+        vertexA: np.ndarray, vertexB: np.ndarray, pos: np.ndarray
+    ) -> float:
         """
         Returns the distance of the given position to a line segment (e.g. the nearest lanelet center line segment to
         the given position).
@@ -259,7 +323,9 @@ class SearchBaseClass(ABC):
         """
 
         magAB2 = (vertexB[0] - vertexA[0]) ** 2 + (vertexB[1] - vertexA[1]) ** 2
-        ABdotAP = (pos[0] - vertexA[0]) * (vertexB[0] - vertexA[0]) + (pos[1] - vertexA[1]) * (vertexB[1] - vertexA[1])
+        ABdotAP = (pos[0] - vertexA[0]) * (vertexB[0] - vertexA[0]) + (
+            pos[1] - vertexA[1]
+        ) * (vertexB[1] - vertexA[1])
         s = ABdotAP / magAB2
         if s < 0:
             return SearchBaseClass.distance(vertexA, pos, 0)
@@ -272,7 +338,9 @@ class SearchBaseClass(ABC):
             return SearchBaseClass.distance(newVertex, pos, 0)
 
     @staticmethod
-    def calc_distance_to_nearest_point(centerVertices: np.ndarray, pos: np.ndarray) -> float:
+    def calc_distance_to_nearest_point(
+        centerVertices: np.ndarray, pos: np.ndarray
+    ) -> float:
         """
         Returns the closest euclidean distance to a polyline (e.g. defined by lanelet center vertices) according to
         the given position.
@@ -286,16 +354,20 @@ class SearchBaseClass(ABC):
         index_closestVert = distances.index(min(distances))
 
         if (index_closestVert + 1) < len(centerVertices):
-            dist1 = SearchBaseClass.calc_dist_to_closets_point_on_line(centerVertices[index_closestVert],
-                                                                       centerVertices[index_closestVert + 1],
-                                                                       pos)
+            dist1 = SearchBaseClass.calc_dist_to_closets_point_on_line(
+                centerVertices[index_closestVert],
+                centerVertices[index_closestVert + 1],
+                pos,
+            )
         else:
             dist1 = SearchBaseClass.distance(centerVertices[index_closestVert], pos, 0)
 
         if index_closestVert > 0:
-            dist2 = SearchBaseClass.calc_dist_to_closets_point_on_line(centerVertices[index_closestVert - 1],
-                                                                       centerVertices[index_closestVert],
-                                                                       pos)
+            dist2 = SearchBaseClass.calc_dist_to_closets_point_on_line(
+                centerVertices[index_closestVert - 1],
+                centerVertices[index_closestVert],
+                pos,
+            )
         else:
             dist2 = SearchBaseClass.distance(centerVertices[index_closestVert], pos, 0)
 
@@ -323,7 +395,10 @@ class SearchBaseClass(ABC):
         :param pos2: the second point
         """
         # TODO: check if np.sqrt((pos1-pos2).T @ (pos1-pos2)) is faster
-        return np.sqrt((pos1[0] - pos2[0]) * (pos1[0] - pos2[0]) + (pos1[1] - pos2[1]) * (pos1[1] - pos2[1]))
+        return np.sqrt(
+            (pos1[0] - pos2[0]) * (pos1[0] - pos2[0])
+            + (pos1[1] - pos2[1]) * (pos1[1] - pos2[1])
+        )
 
     @staticmethod
     def manhattan_distance(pos1: np.ndarray, pos2: np.ndarray) -> float:
@@ -353,8 +428,9 @@ class SearchBaseClass(ABC):
         :param pos1: the first point
         :param pos2: the second point
         """
-        return abs(pos1[0] - pos2[0]) / (abs(pos1[0]) + abs(pos2[0])) + abs(pos1[1] - pos2[1]) / (
-                abs(pos1[1]) + abs(pos2[1]))
+        return abs(pos1[0] - pos2[0]) / (abs(pos1[0]) + abs(pos2[0])) + abs(
+            pos1[1] - pos2[1]
+        ) / (abs(pos1[1]) + abs(pos2[1]))
 
     @staticmethod
     def cosine_distance(pos1: np.ndarray, pos2: np.ndarray) -> float:
@@ -365,7 +441,8 @@ class SearchBaseClass(ABC):
         :param pos2: the second point
         """
         return 1 - (pos1[0] * pos2[0] + pos1[1] * pos2[1]) / (
-                np.sqrt(pos1[0] ** 2 + pos2[0] ** 2) * np.sqrt(pos1[1] ** 2 + pos2[1] ** 2))
+            np.sqrt(pos1[0] ** 2 + pos2[0] ** 2) * np.sqrt(pos1[1] ** 2 + pos2[1] ** 2)
+        )
 
     @staticmethod
     def sum_of_squared_difference(pos1: np.ndarray, pos2: np.ndarray) -> float:
@@ -398,7 +475,9 @@ class SearchBaseClass(ABC):
         return 0.5 * ((pos1[0] - pos2[0]) ** 2 + (pos1[1] - pos2[1]) ** 2)
 
     @classmethod
-    def distance(cls, pos1: np.ndarray, pos2: np.ndarray = np.zeros(2), distance_type=0) -> float:
+    def distance(
+        cls, pos1: np.ndarray, pos2: np.ndarray = np.zeros(2), distance_type=0
+    ) -> float:
         """
         Returns the distance between 2 points, the type is specified by 'type'.
 
@@ -442,7 +521,10 @@ class SearchBaseClass(ABC):
         dy_dt = np.gradient(polyline[:, 1])
         d2x_dt2 = np.gradient(dx_dt)
         d2y_dt2 = np.gradient(dy_dt)
-        curvatureArray = np.abs(d2x_dt2 * dy_dt - dx_dt * d2y_dt2) / (dx_dt * dx_dt + dy_dt * dy_dt) ** 1.5
+        curvatureArray = (
+            np.abs(d2x_dt2 * dy_dt - dx_dt * d2y_dt2)
+            / (dx_dt * dx_dt + dy_dt * dy_dt) ** 1.5
+        )
         curvature = 0
         for elem in curvatureArray:
             curvature = curvature + abs(elem)
@@ -473,7 +555,9 @@ class SearchBaseClass(ABC):
         return dist
 
     @staticmethod
-    def find_closest_point_on_line(vertexA: np.ndarray, vertexB: np.ndarray, pos: np.ndarray) -> Optional[np.ndarray]:
+    def find_closest_point_on_line(
+        vertexA: np.ndarray, vertexB: np.ndarray, pos: np.ndarray
+    ) -> Optional[np.ndarray]:
         """
         Finds the closest point of the given position on the line segment
             (e.g. the nearest lanelet center line segment to the given position)
@@ -488,7 +572,9 @@ class SearchBaseClass(ABC):
         if vertexA is None or vertexB is None or pos is None:
             return None
         magAB2 = (vertexB[0] - vertexA[0]) ** 2 + (vertexB[1] - vertexA[1]) ** 2
-        ABdotAP = (pos[0] - vertexA[0]) * (vertexB[0] - vertexA[0]) + (pos[1] - vertexA[1]) * (vertexB[1] - vertexA[1])
+        ABdotAP = (pos[0] - vertexA[0]) * (vertexB[0] - vertexA[0]) + (
+            pos[1] - vertexA[1]
+        ) * (vertexB[1] - vertexA[1])
         s = ABdotAP / magAB2
         if s < 0:
             return vertexA
@@ -501,7 +587,9 @@ class SearchBaseClass(ABC):
             return newVertex
 
     @staticmethod
-    def find_nearest_point_on_lanelet(lanelet: Lanelet, pos: np.ndarray) -> (np.ndarray, int, int):
+    def find_nearest_point_on_lanelet(
+        lanelet: Lanelet, pos: np.ndarray
+    ) -> (np.ndarray, int, int):
         """
         Finds the projection of a position on a lanelet and the trailing and following index of the center vertices
 
@@ -516,9 +604,11 @@ class SearchBaseClass(ABC):
             distances.append(SearchBaseClass.distance(vertex, pos, 0))
         index_closestVert = distances.index(min(distances))
         if (index_closestVert + 1) < len(centerVertices):
-            currVerOnLane1 = SearchBaseClass.find_closest_point_on_line(centerVertices[index_closestVert],
-                                                                        centerVertices[index_closestVert + 1],
-                                                                        pos)
+            currVerOnLane1 = SearchBaseClass.find_closest_point_on_line(
+                centerVertices[index_closestVert],
+                centerVertices[index_closestVert + 1],
+                pos,
+            )
             index_nextCenterVert1 = index_closestVert + 1
         else:
             currVerOnLane1 = centerVertices[index_closestVert]
@@ -528,9 +618,11 @@ class SearchBaseClass(ABC):
         dist1 = SearchBaseClass.distance(currVerOnLane1, pos, 0)
 
         if index_closestVert > 0:
-            currVerOnLane2 = SearchBaseClass.find_closest_point_on_line(centerVertices[index_closestVert - 1],
-                                                                        centerVertices[index_closestVert],
-                                                                        pos)
+            currVerOnLane2 = SearchBaseClass.find_closest_point_on_line(
+                centerVertices[index_closestVert - 1],
+                centerVertices[index_closestVert],
+                pos,
+            )
             index_prevCenterVert2 = index_closestVert - 1
 
         else:
@@ -580,10 +672,14 @@ class SearchBaseClass(ABC):
 
         if lanelet is None or index is None or len(lanelet.right_vertices) <= index:
             return None
-        return SearchBaseClass.distance(lanelet.left_vertices[index], lanelet.right_vertices[index])
+        return SearchBaseClass.distance(
+            lanelet.left_vertices[index], lanelet.right_vertices[index]
+        )
 
     @staticmethod
-    def calc_normal_distance_from_line_with_direction(direction_vector: np.ndarray, position: np.ndarray) -> float:
+    def calc_normal_distance_from_line_with_direction(
+        direction_vector: np.ndarray, position: np.ndarray
+    ) -> float:
         """
         Calculates the signed distance between a direction and a position
         Note: This implementation can be used only the position vector if perpendicular to the direction
@@ -652,7 +748,9 @@ class SearchBaseClass(ABC):
                     res.append(o)
         return res
 
-    def calc_lanelet_cost(self, lanelet_current: Lanelet, dist: int, list_lanelets_visited: List[int]) -> None:
+    def calc_lanelet_cost(
+        self, lanelet_current: Lanelet, dist: int, list_lanelets_visited: List[int]
+    ) -> None:
         """
         Calculates distances of all lanelets which can be reached through recursive adjacency/predecessor relationship
         by the current lanelet. This is a recursive implementation.
@@ -670,25 +768,48 @@ class SearchBaseClass(ABC):
 
         if lanelet_current.predecessor is not None:
             for pred in lanelet_current.predecessor:
-                if self.dict_lanelets_costs[pred] == -1 or self.dict_lanelets_costs[pred] > dist:
+                if (
+                    self.dict_lanelets_costs[pred] == -1
+                    or self.dict_lanelets_costs[pred] > dist
+                ):
                     self.dict_lanelets_costs[pred] = dist
 
             for pred in lanelet_current.predecessor:
-                self.calc_lanelet_cost(self.lanelet_network.find_lanelet_by_id(pred), dist + 1, list_lanelets_visited)
+                self.calc_lanelet_cost(
+                    self.lanelet_network.find_lanelet_by_id(pred),
+                    dist + 1,
+                    list_lanelets_visited,
+                )
 
-        if lanelet_current.adj_left is not None and lanelet_current.adj_left_same_direction:
-            if self.dict_lanelets_costs[lanelet_current.adj_left] == -1 or \
-                    self.dict_lanelets_costs[lanelet_current.adj_left] > dist:
+        if (
+            lanelet_current.adj_left is not None
+            and lanelet_current.adj_left_same_direction
+        ):
+            if (
+                self.dict_lanelets_costs[lanelet_current.adj_left] == -1
+                or self.dict_lanelets_costs[lanelet_current.adj_left] > dist
+            ):
                 self.dict_lanelets_costs[lanelet_current.adj_left] = dist
-                self.calc_lanelet_cost(self.lanelet_network.find_lanelet_by_id(lanelet_current.adj_left), dist + 1,
-                                       list_lanelets_visited)
+                self.calc_lanelet_cost(
+                    self.lanelet_network.find_lanelet_by_id(lanelet_current.adj_left),
+                    dist + 1,
+                    list_lanelets_visited,
+                )
 
-        if lanelet_current.adj_right is not None and lanelet_current.adj_right_same_direction:
-            if self.dict_lanelets_costs[lanelet_current.adj_right] == -1 or \
-                    self.dict_lanelets_costs[lanelet_current.adj_right] > dist:
+        if (
+            lanelet_current.adj_right is not None
+            and lanelet_current.adj_right_same_direction
+        ):
+            if (
+                self.dict_lanelets_costs[lanelet_current.adj_right] == -1
+                or self.dict_lanelets_costs[lanelet_current.adj_right] > dist
+            ):
                 self.dict_lanelets_costs[lanelet_current.adj_right] = dist
-                self.calc_lanelet_cost(self.lanelet_network.find_lanelet_by_id(lanelet_current.adj_right), dist + 1,
-                                       list_lanelets_visited)
+                self.calc_lanelet_cost(
+                    self.lanelet_network.find_lanelet_by_id(lanelet_current.adj_right),
+                    dist + 1,
+                    list_lanelets_visited,
+                )
 
     def calc_lanelet_orientation(self, lanelet_id: int, pos: np.ndarray) -> float:
         """
@@ -712,13 +833,15 @@ class SearchBaseClass(ABC):
         """
 
         curPos = state.position
-        if hasattr(self.planningProblem.goal.state_list[0], 'position'):
+        if hasattr(self.planningProblem.goal.state_list[0], "position"):
             goalPos = self.planningProblem.goal.state_list[0].position.center
             return math.atan2(goalPos[1] - curPos[1], goalPos[0] - curPos[0])
         else:
             return 0
 
-    def lanelets_of_position(self, lanelets: List[int], state: KSState, diff: float = math.pi / 5) -> List[int]:
+    def lanelets_of_position(
+        self, lanelets: List[int], state: KSState, diff: float = math.pi / 5
+    ) -> List[int]:
         """
         Returns all lanelets, whose angle to the orientation of the input state are smaller than pi/5.
 
@@ -731,9 +854,14 @@ class SearchBaseClass(ABC):
         correctLanelets = []
         for laneletId in lanelets:
             laneletObj = self.scenario.lanelet_network.find_lanelet_by_id(laneletId)
-            laneletOrientationAtPosition = SearchBaseClass.calc_angle_of_position(laneletObj.center_vertices,
-                                                                                  state.position)
-            if math.pi - abs(abs(laneletOrientationAtPosition - state.orientation) - math.pi) < diff:
+            laneletOrientationAtPosition = SearchBaseClass.calc_angle_of_position(
+                laneletObj.center_vertices, state.position
+            )
+            if (
+                math.pi
+                - abs(abs(laneletOrientationAtPosition - state.orientation) - math.pi)
+                < diff
+            ):
                 correctLanelets.append(laneletId)
 
         while len(correctLanelets) > 0:
@@ -744,7 +872,9 @@ class SearchBaseClass(ABC):
 
         return correctLanelets
 
-    def calc_dist_to_closest_obstacle(self, lanelet_id: int, pos: np.ndarray, time_step: int) -> float:
+    def calc_dist_to_closest_obstacle(
+        self, lanelet_id: int, pos: np.ndarray, time_step: int
+    ) -> float:
         """
         Returns distance between the given position and the center of the closest obstacle in the given lanelet
         (specified by lanelet id).
@@ -755,8 +885,9 @@ class SearchBaseClass(ABC):
 
         """
 
-        obstacles_in_lanelet = self.get_obstacles(self.scenario.lanelet_network.find_lanelet_by_id(lanelet_id),
-                                                  time_step)
+        obstacles_in_lanelet = self.get_obstacles(
+            self.scenario.lanelet_network.find_lanelet_by_id(lanelet_id), time_step
+        )
         shortestDist = math.inf
         for obstacleObj in obstacles_in_lanelet:
             shape_obs = obstacleObj.occupancy_at_time(time_step).shape
@@ -765,7 +896,9 @@ class SearchBaseClass(ABC):
                     shortestDist = SearchBaseClass.distance(pos, shape_obs.center)
         return shortestDist
 
-    def num_obstacles_in_lanelet_at_time_step(self, time_step: int, lanelet_id: int) -> int:
+    def num_obstacles_in_lanelet_at_time_step(
+        self, time_step: int, lanelet_id: int
+    ) -> int:
         """
         Returns the number of obstacles in the given lanelet (specified by lanelet id) at time step t.
 
@@ -773,13 +906,14 @@ class SearchBaseClass(ABC):
         :param lanelet_id: id of the lanelet whose obstacles are considered
 
         """
-        obstacles_in_lanelet = self.get_obstacles(self.scenario.lanelet_network.find_lanelet_by_id(lanelet_id),
-                                                  time_step)
+        obstacles_in_lanelet = self.get_obstacles(
+            self.scenario.lanelet_network.find_lanelet_by_id(lanelet_id), time_step
+        )
         return len(obstacles_in_lanelet)
 
     def is_adjacent(self, start_lanelet_id: int, final_lanelet_id: int) -> bool:
         """
-        Returns true if the the final lanelet is adjacent to the start lanelet.
+        Returns true if the final lanelet is adjacent to the start lanelet.
 
         :param start_lanelet_id: id of the first lanelet (start lanelet).
         :param final_lanelet_id: id of the second lanelet (final lanelet).
@@ -797,7 +931,7 @@ class SearchBaseClass(ABC):
 
     def is_successor(self, start_lanelet_id: int, final_lanelet_id: int) -> bool:
         """
-        Returns true if the the final lanelet is a successor of the start lanelet.
+        Returns true if the final lanelet is a successor of the start lanelet.
 
         :param start_lanelet_id: id of the first lanelet (start lanelet).
         :param final_lanelet_id: id of the second lanelet (final lanelet).
@@ -848,9 +982,52 @@ class SearchBaseClass(ABC):
         """
         return path[-1].time_step - path[0].time_step
 
+    def calc_steering_angle_cost(self, path: List[KSState]) -> float:
+        """
+        Returns steering angle cost of the given path.
+        :param path: the path whose steering angle cost is calculated
+        """
+        cost = 0
+        for i in range(len(path) - 1):  # Adjust range to prevent 'index out of range' error
+            if hasattr(path[i], "steering_angle"):
+                cost += abs(path[i].steering_angle)
+            else:
+                # Change in Heading Angle:
+                delta_theta = path[i + 1].orientation - path[i].orientation
+                cost += abs(np.arctan2(self.wheel_base, path[i].velocity * self.scenario.dt/delta_theta))
+        return cost
+
+    def calc_steering_velocity_cost(self, path: List[KSState]) -> float:
+        """
+        Returns steering velocity cost of the given path.
+        :param path: the path whose steering velocity cost is calculated
+        """
+        cost = 0
+        for i in range(len(path) - 1):  # Adjust range to prevent 'index out of range' error
+            if hasattr(path[i], "steering_angle_speed"):
+                cost += abs(path[i].steering_angle_speed)
+            else:
+                # Change in Heading Angle:
+                cost += abs((path[i + 1].steering_angle - path[i].steering_angle) / self.scenario.dt)
+        return cost
+
+    def calc_acceleration_cost(self, path: List[KSState]) -> float:
+        """
+        Returns acceleration cost of the given path.
+        :param path: the path whose acceleration cost is calculated
+        """
+        cost = 0
+        for i in range(len(path) - 1):  # Adjust range to prevent 'index out of range' error
+            if hasattr(path[i], "acceleration"):
+                cost += abs(path[i].acceleration)
+            else:
+                # Calculate the change in velocity over time (approximate acceleration)
+                cost += abs((path[i + 1].velocity - path[i].velocity) / self.scenario.dt)
+        return cost
+
     def calc_path_efficiency(self, path: List[KSState]) -> float:
         """
-        Returns the path efficiency = travelled_distance / time_cost
+        Returns the path efficiency = travelled_distance / time_cost.
 
         :param path: the path whose efficiency is calculated
         """
@@ -869,14 +1046,16 @@ class SearchBaseClass(ABC):
         "distance(pos1: np.ndarray, pos2: np.ndarray, type=0)"
         """
 
-        if hasattr(self.planningProblem.goal.state_list[0], 'position'):
+        if hasattr(self.planningProblem.goal.state_list[0], "position"):
             curPos = state.position
             goalPos = self.planningProblem.goal.state_list[0].position.center
             return SearchBaseClass.distance(curPos, goalPos, distance_type)
         else:
             return 0
 
-    def calc_heuristic_lanelet(self, path: List[KSState]) -> Union[Tuple[None, None, None], Tuple[float, list, list]]:
+    def calc_heuristic_lanelet(
+        self, path: List[KSState]
+    ) -> Union[Tuple[None, None, None], Tuple[float, list, list]]:
         """
         Calculates the distance between every individual state of the path and the centers of the path's corresponding
         lanelets and sum them up.
@@ -891,18 +1070,32 @@ class SearchBaseClass(ABC):
         """
         end_lanelet_id = None
         dist = 0
-        start_lanelet_id = self.scenario.lanelet_network.find_lanelet_by_position([path[0].position])[
-            0]  # returns id of the start lanelet
+        start_lanelet_id = self.scenario.lanelet_network.find_lanelet_by_position(
+            [path[0].position]
+        )[
+            0
+        ]  # returns id of the start lanelet
         if not start_lanelet_id:
             return None, None, None
         for i in range(len(path)):
             lanelets_of_pathSegment = self.lanelets_of_position(
-                self.scenario.lanelet_network.find_lanelet_by_position([path[i].position])[0], path[i])
+                self.scenario.lanelet_network.find_lanelet_by_position(
+                    [path[i].position]
+                )[0],
+                path[i],
+            )
             if not lanelets_of_pathSegment:
-                return None, None, None  # return none if path element is not in a lanelet with correct orientation
-            laneletObj = self.scenario.lanelet_network.find_lanelet_by_id(lanelets_of_pathSegment[0])
-            dist = dist + SearchBaseClass.calc_distance_to_nearest_point(laneletObj.center_vertices,
-                                                                         path[i].position)  # distance to center line
+                return (
+                    None,
+                    None,
+                    None,
+                )  # return none if path element is not in a lanelet with correct orientation
+            laneletObj = self.scenario.lanelet_network.find_lanelet_by_id(
+                lanelets_of_pathSegment[0]
+            )
+            dist = dist + SearchBaseClass.calc_distance_to_nearest_point(
+                laneletObj.center_vertices, path[i].position
+            )  # distance to center line
             end_lanelet_id = lanelets_of_pathSegment
         return dist, end_lanelet_id, start_lanelet_id
 
@@ -933,27 +1126,39 @@ class SearchBaseClass(ABC):
         Calculates the euclidean distance of the vehicle center to the desired goal position. The attribute
         self.position_desired is extracted from the planning problem (see method self.parse_planning_problem() )
 
-        @param current_node:
-        @return: euclidean distance
         """
-        current_node_state = current_node.list_paths[-1][-1]    # get last state in current path
-        pos = current_node_state.position                       # get (rear axis) position of last state
+        current_node_state = current_node.list_paths[-1][
+            -1
+        ]  # get last state in current path
+        pos = current_node_state.position  # get (rear axis) position of last state
         # get positions of vehicle center (node state refers to reference point of Motion Primitives, i.e., rear axis)
-        pos_veh_center = pos + np.array([self.rear_ax_dist * np.cos(current_node_state.orientation),
-                                         self.rear_ax_dist * np.sin(current_node_state.orientation)])
+        pos_veh_center = pos + np.array(
+            [
+                self.rear_ax_dist * np.cos(current_node_state.orientation),
+                self.rear_ax_dist * np.sin(current_node_state.orientation),
+            ]
+        )
 
         if self.position_desired[0].contains(pos_veh_center[0]):
             delta_x = 0.0
         else:
-            delta_x = min([abs(self.position_desired[0].start - pos_veh_center[0]),
-                           abs(self.position_desired[0].end - pos_veh_center[0])])
+            delta_x = min(
+                [
+                    abs(self.position_desired[0].start - pos_veh_center[0]),
+                    abs(self.position_desired[0].end - pos_veh_center[0]),
+                ]
+            )
         if self.position_desired[1].contains(pos_veh_center[1]):
             delta_y = 0
         else:
-            delta_y = min([abs(self.position_desired[1].start - pos_veh_center[1]),
-                           abs(self.position_desired[1].end - pos_veh_center[1])])
+            delta_y = min(
+                [
+                    abs(self.position_desired[1].start - pos_veh_center[1]),
+                    abs(self.position_desired[1].end - pos_veh_center[1]),
+                ]
+            )
 
-        return np.sqrt(delta_x ** 2 + delta_y ** 2)
+        return np.sqrt(delta_x**2 + delta_y**2)
 
     def reached_goal(self, path: List[KSState]) -> bool:
         """
@@ -966,18 +1171,27 @@ class SearchBaseClass(ABC):
         for i in range(len(path)):
             # check if center of vehicle is within goal region
             state = path[i]
-            kwarg = {'position': state.position + np.array([self.rear_ax_dist * np.cos(state.orientation),
-                                                            self.rear_ax_dist * np.sin(state.orientation)]),
-                     'velocity': state.velocity,
-                     'steering_angle': state.steering_angle,
-                     'orientation': state.orientation,
-                     'time_step': state.time_step}
+            kwarg = {
+                "position": state.position
+                + np.array(
+                    [
+                        self.rear_ax_dist * np.cos(state.orientation),
+                        self.rear_ax_dist * np.sin(state.orientation),
+                    ]
+                ),
+                "velocity": state.velocity,
+                "steering_angle": state.steering_angle,
+                "orientation": state.orientation,
+                "time_step": state.time_step,
+            }
             state_shifted = KSState(**kwarg)
             if self.planningProblem.goal.is_reached(state_shifted):
                 return True
         return False
 
-    def remove_states_behind_goal(self, path: List[List[KSState]]) -> List[List[KSState]]:
+    def remove_states_behind_goal(
+        self, path: List[List[KSState]]
+    ) -> List[List[KSState]]:
         """
         Removes all states that are behind the state which satisfies goal state conditions and returns the pruned path.
 
@@ -987,12 +1201,19 @@ class SearchBaseClass(ABC):
         for i in range(len(path[-1])):
             # check if center of vehicle is within goal region
             state = path[-1][i]
-            kwarg = {'position': state.position + np.array([self.rear_ax_dist * np.cos(state.orientation),
-                                                            self.rear_ax_dist * np.sin(state.orientation)]),
-                     'velocity': state.velocity,
-                     'steering_angle': state.steering_angle,
-                     'orientation': state.orientation,
-                     'time_step': state.time_step}
+            kwarg = {
+                "position": state.position
+                + np.array(
+                    [
+                        self.rear_ax_dist * np.cos(state.orientation),
+                        self.rear_ax_dist * np.sin(state.orientation),
+                    ]
+                ),
+                "velocity": state.velocity,
+                "steering_angle": state.steering_angle,
+                "orientation": state.orientation,
+                "time_step": state.time_step,
+            }
             state_shifted = KSState(**kwarg)
             if self.planningProblem.goal.is_reached(state_shifted):
                 for j in range(i + 1, len(path[-1])):
@@ -1013,8 +1234,15 @@ class SearchBaseClass(ABC):
         new_state_list = list()
 
         for state in path:
-            new_state = state.translate_rotate(np.array([self.rear_ax_dist * math.cos(state.orientation),
-                                                         self.rear_ax_dist * math.sin(state.orientation)]), 0)
+            new_state = state.translate_rotate(
+                np.array(
+                    [
+                        self.rear_ax_dist * math.cos(state.orientation),
+                        self.rear_ax_dist * math.sin(state.orientation),
+                    ]
+                ),
+                0,
+            )
             new_state_list.append(new_state)
 
         trajectory = Trajectory(path[0].time_step, new_state_list)
@@ -1032,7 +1260,9 @@ class SearchBaseClass(ABC):
         return True
 
     @staticmethod
-    def translate_primitive_to_current_state(primitive: MotionPrimitive, path_current: List[KSState]) -> List[KSState]:
+    def translate_primitive_to_current_state(
+        primitive: MotionPrimitive, path_current: List[KSState]
+    ) -> List[KSState]:
         """
         Uses the trajectory defined in the given primitive, translates it towards the last state of current path and
         returns the list of new path.
@@ -1046,7 +1276,9 @@ class SearchBaseClass(ABC):
         return primitive.attach_trajectory_to_state(path_current[-1])
 
     @staticmethod
-    def append_path(path_current: List[KSState], newPath: List[KSState]) -> List[KSState]:
+    def append_path(
+        path_current: List[KSState], newPath: List[KSState]
+    ) -> List[KSState]:
         """
         Appends a new path to the current path and returns the whole path.
 
