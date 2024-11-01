@@ -41,7 +41,8 @@ scipy = [
     { version = ">=1.10.0,<1.11", python = "3.8" },
     { version = "^1.11.3", python = ">=3.9,<3.13" }
 ]
-ipython = "~7.18.1"
+ipython = "8.10.0"
+ipython-genutils = "0.2.0"
 imageio = ">=2.34.0"
 shapely = ">=1.6.4"
 triangle = ">=20200424"
