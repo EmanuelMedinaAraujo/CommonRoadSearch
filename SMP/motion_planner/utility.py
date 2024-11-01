@@ -414,7 +414,7 @@ def visualize_solution(
     ego_params.vehicle_shape.occupancy.shape.facecolor = "green"
 
     for i in range(0, num_time_steps):
-        display.clear_output(wait=True)
+        # display.clear_output(wait=True)
         plt.figure(figsize=(25, 10))
         renderer = MPRenderer()
         renderer.draw_params.time_begin = i

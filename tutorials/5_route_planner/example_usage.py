@@ -39,4 +39,5 @@ if __name__ == "__main__":
         planning_problem,
         draw_route_lanelets=True,
         draw_reference_path=True,
+        save_img=False
     )
