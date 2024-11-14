@@ -1,6 +1,6 @@
 # CommonRoad Search: Search-based Motion Planner with Motion Primitives
 
-This is a programming exercise of the lecture **Fundamentals of Artificial Intelligence (IN2406)** delivered at the Department of Informatics, TUM. The task is to implement a heuristic function and/or a search algorithm with motion primitives to solve motion planning problems in [CommonRoad](https://commonroad.in.tum.de/). The following search algorithms are already implemented in our framework:
+This is a programming exercise of the lecture **Fundamentals of Artificial Intelligence (IN2406)** delivered at TUM School of Computation, Information and Technology (CIT). The task is to implement a heuristic function and/or a search algorithm with motion primitives to solve motion planning problems in [CommonRoad](https://commonroad.in.tum.de/). The following search algorithms are already implemented in our framework:
 
 |Uninformed Search Algorithms &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Informed Search Algorithms &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;|
 |-----------------------------|---------------------------|
@@ -93,13 +93,10 @@ If you are using PyCharm, set **commonroad-py39** as environment in PyCharm as w
 
 ## :cloud: Virtual machine
 A [VirtualBox](https://www.virtualbox.org/) image is available in which all the necessary packages have been installed. 
-The virtual machine image can be downloaded via [this](https://syncandshare.lrz.de/getlink/fi7SzQDYKZpN5AoUNLfkLd/) link.
+The virtual machine image can be downloaded via [this](https://nextcloud.in.tum.de/index.php/s/DwBYkkkGHiymeHY) link.
 The downloading and the default login passwords are both `commonroad`. 
-You can update to the latest commit with typing the command in the `commonroad-search/` folder:
 
-```sh
-$ git pull
-```
+Then use the command `jupyter notebook` in the terminal to launch the Jupyter notebook, and navigate to `Desktop/commonroad-search/`. If necessary, you can adjust the resolution in **Preferences -> Monitor settings -> Resolution**.
 
 
 ## :whale: Docker
