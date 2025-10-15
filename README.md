@@ -6,7 +6,8 @@ This is a programming exercise of the lecture **Fundamentals of Artificial Intel
 |-----------------------------|---------------------------|
 |Breadth First Search <br /> Depth First Search <br /> Depth-limited Search <br />   Uniform Cost Search (Dijkstra)      |Greedy Best First Search <br />  A* Search                  |
 
-The code is written in Python 3.9 and has been tested on Ubuntu 22.04. 
+The code is written for Python 3.11 (Docker image) and has been tested in Docker (Debian slim, amd64) on macOS and Linux. It also remains compatible with Ubuntu 22.04 in a local (non-Docker) setup.
+(On Apple Silicon (M1/M2), run Docker with --platform=linux/amd64 to match the course environment.)
 
 #### Before you start with any of the steps mentioned below, first clone this repository via:
 
@@ -36,7 +37,7 @@ We provide 3 ways to run the software framework: **local installation**, **virtu
 <sup>1</sup>: _It is possible to run the CommonRoad software on Windows, however, the evaluation of submissions from Windows on our server
 has not been tested. We therefore don't recommend a local installation on Windows for this exercise._
 
-<sup>2</sup>: _The VM image has only been tested on MacOS with an Intel chip. **For Macs with M1 chip we can not provide a VM at the moment**. We therefore recommend the other two options._
+<sup>2</sup>: _The VM image has only been tested on macOS (Intel). For Apple Silicon (M1/M2/M3/M4) we recommend using the Docker image instead (works with --platform linux/amd64)._
 
 
 ## :computer: Local installation
@@ -100,10 +101,57 @@ Then use the command `jupyter notebook` in the terminal to launch the Jupyter no
 
 
 ## :whale: Docker
-A docker file and a docker image is available if you wish to run the code in a docker container. 
-Refer to `docker/README.md` for further instructions. Minimum system requirements are listed [here](https://docs.docker.com/desktop/).
+The official Docker image provides a ready-to-use environment with all dependencies and updated CommonRoad packages preinstalled.
+[here](https://docs.docker.com/desktop/).
 
+**Environment details:**
+- Python 3.11
+- commonroad-io 2024.3  
+- commonroad-vehicle-models 3.0.2  
+- commonroad-route-planner 2025.1.0  
+- commonroad-drivability-checker 2025.3.1  
+- commonroad-clcs 2025.2.0
 
+### Step 0: Create a folder for this course (choose any name)
+```sh
+$ mkdir -p ~/Documents/FundAI2025
+$ ~/Documents/FundAI2025
+```
+
+### Step 1: Build the image (first time only)
+Clone this repository and build the Docker image from the provided Dockerfile.
+
+```sh
+$ git clone https://gitlab.lrz.de/tum-cps/commonroad-search.git
+$ cd commonroad-search
+# Build the Docker image (takes some time)
+$ docker build --platform linux/amd64 -t tum-cps/commonroad-search:2025 \
+  -f docker/commonroad_search_2025.dockerfile .
+```
+### Step 2: Run the container
+macOS (Apple Silicon M1-M4)
+(forces x86 compatibility to match the TUM course environment)
+```sh
+# should work on Intel and M1-4 Mac's
+$ docker run -it -p 9000:8888 \
+  --mount src="$(pwd)",target=/commonroad/commonroad-search,type=bind \
+  tum-cps/commonroad-search:2025
+```
+Windows (CMD prompt)
+```sh
+$ docker run -it -p 9000:8888 ^
+  --mount type=bind,source=%cd%,target=/commonroad/commonroad-search ^
+  tum-cps/commonroad-search:2025
+```
+
+### Step 3: Access Jupyter Lab
+Then open your browser and go to [http://localhost:9000](http://localhost:9000)
+Inside Jupyter Lab, navigate to:`/commonroad/commonroad-search/tutorials`
+
+### Stop Container
+When finished, press Ctrl + C in the terminal or stop it via Docker Desktop.
+
+> **Tip:** If port `9000` is already in use, you can change it (e.g. `-p 9001:8888`).
 
 
 ## :chart_with_upwards_trend: Getting Started
