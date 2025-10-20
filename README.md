@@ -50,13 +50,13 @@ We recommend using [Anaconda](https://www.anaconda.com/) to manage your environm
 
 After installing Anaconda, create a new environment with:
 ``` sh
-$ conda create -n commonroad-py39 python=3.9 -y
+$ conda create -n commonroad-py311 python=3.11 -y
 ```
 
-Here the name of the environment is called **commonroad-py39**. You may also change this name as you wish. In such case, don't forget to change it in the following commands as well. **Always activate** this environment before you do anything related:
+Here the name of the environment is called **commonroad-py311**. You may also change this name as you wish. In such case, don't forget to change it in the following commands as well. **Always activate** this environment before you do anything related:
 
 ```sh
-$ conda activate commonroad-py39
+$ conda activate commonroad-py311
 ```
 Install `Jupyter Notebook` and supplementary modules:
 ```sh
@@ -88,7 +88,7 @@ $ sudo apt-get install imagemagick imagemagick-doc -y
 $ brew install imagemagick
 ```
 
-If you are using PyCharm, set **commonroad-py39** as environment in PyCharm as well in: _PyCharm -> Preferences/Settings -> Project -> Python Interpreter -> Add Interpreter -> Add Local Interpreter
+If you are using PyCharm, set **commonroad-py311** as environment in PyCharm as well in: _PyCharm -> Preferences/Settings -> Project -> Python Interpreter -> Add Interpreter -> Add Local Interpreter
 -> Conda Environment_
 
 
