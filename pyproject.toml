@@ -25,7 +25,7 @@ include = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.13"
+python = ">=3.10,<3.12"
 commonroad-io = ">=2024.3"
 commonroad-drivability-checker = ">=2025.3.1"
 commonroad-route-planner = ">=2025.1.0"
@@ -33,12 +33,12 @@ commonroad-clcs = ">=2025.2.0"
 commonroad-vehicle-models = ">=3.0.2"
 
 tqdm = ">=4.67"
-networkx = ">=3.5"
-ipywidgets = ">=8.17.5.1"
+networkx = ">=2.4"
+ipywidgets = ">=8.1.5"
 ipython-autotime = "~0.1"
 matplotlib = ">=3.10"
 numpy = ">=1.26"
-scipy = ">=1.16"
+scipy = ">=1.11.3"
 ipython = "8.10.0"
 ipython-genutils = ">=0.2.0"
 imageio = ">=2.34.0"
