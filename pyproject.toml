@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "commonroad-search"
-version = "2024.1"
+version = "2025.1"
 authors = ["Cyber-Physical Systems Group, Technical University of Munich <commonroad@lists.lrz.de>"]
 license = "BSD"
 readme = "README.md"
@@ -11,6 +11,7 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Operating System :: POSIX :: Linux",
     "Operating System :: MacOS",
 ]
@@ -24,29 +25,26 @@ include = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.11"
-commonroad-io = ">=2024.1"
-commonroad-drivability-checker = ">=2024.1"
-commonroad-route-planner = "==2024.1.1"
-tqdm = ">=4.64"
+python = ">=3.10,<3.12"
+commonroad-io = ">=2024.3"
+commonroad-drivability-checker = ">=2025.3.1"
+commonroad-route-planner = ">=2025.1.0"
+commonroad-clcs = ">=2025.2.0"
+commonroad-vehicle-models = ">=3.0.2"
+
+tqdm = ">=4.67"
 networkx = ">=2.4"
-ipywidgets = "~7.5.1"
+ipywidgets = ">=8.1.5"
 ipython-autotime = "~0.1"
-matplotlib = ">=3.7.0"
-numpy = [
-    { version = ">=1.22, <1.26", python = "3.8" },
-    { version = "^1.26.1", python = ">=3.9,<3.11" }
-]
-scipy = [
-    { version = ">=1.10.0,<1.11", python = "3.8" },
-    { version = "^1.11.3", python = ">=3.9,<3.13" }
-]
+matplotlib = ">=3.10"
+numpy = ">=1.26"
+scipy = ">=1.11.3"
 ipython = "8.10.0"
-ipython-genutils = "0.2.0"
+ipython-genutils = ">=0.2.0"
 imageio = ">=2.34.0"
-shapely = ">=1.6.4"
+shapely = ">=2.1"
 triangle = ">=20200424"
-pyyaml = "!=6.0.0,!=5.4.0,!=5.4.1"
+pyyaml = ">=6.0.1"
 
 [project.urls]
 homepage = "https://commonroad.in.tum.de/tools/commonroad-search"
@@ -57,3 +55,6 @@ Source = "https://gitlab.lrz.de/tum-cps/commonroad-search"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
+[project]
+name = "commonroad-search"
+version = "2024.1"

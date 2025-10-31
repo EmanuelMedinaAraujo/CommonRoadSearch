@@ -1,21 +1,103 @@
-## PyCharm project:
-.idea
-.idea/**
+# ==========================
+# CommonRoad Search Repo
+# ==========================
 
-## Byte-compiled / optimized / DLL files
-__pycache__
-.ipynb_checkpoints
-*.py[cod]
-*.cache
-*pytest_cache/
-*.egg-info
-
+# --- Python cache and build ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+*.egg
+*.egg-info/
+*.so
+*.dll
 build/
-install/
-log/
+dist/
+.eggs/
+*.manifest
+*.spec
 
+# --- Virtual environments ---
+venv/
+.venv/
+env/
+ENV/
+.ipynb_checkpoints/
+.python-version
 
-outputs/gifs/
-outputs/solutions/
+# --- Jupyter Notebook junk ---
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/
+*.ipynb_checkpoints
+*.ipynb_checkpoints.json
+*.nbconvert.ipynb
 
+# --- Outputs and logs ---
+outputs/
+logs/
+tmp/
 *.log
+*.out
+*.bak
+*.tmp
+*.gif
+
+# --- Generated motion primitives ---
+tutorials/3_motion_primitive_generator/saved_motion_primitives/
+
+# --- Docker build / artifacts ---
+docker/*.log
+docker/*_old.dockerfile
+docker/*backup*
+docker/.cache/
+*.tar
+
+# --- Local configuration / IDEs ---
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# --- OS specific ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# --- Git and merge artifacts ---
+*.orig
+*.rej
+*.swp
+*.swo
+*.merge_file*
+*.un~
+*.tmp~
+*.bak~
+*.old~
+
+# --- Test and temporary files ---
+test_output/
+__temp__/
+.cache/
+.coverage
+.pytest_cache/
+htmlcov/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+*.mo
+
+# --- CommonRoad specific ---
+# generated scenarios, motion primitives, etc.
+scenarios/generated/
+scenarios/tmp/
+tutorials/*/tmp/
+outputs/gifs/
+outputs/logs/
+outputs/rename.py
