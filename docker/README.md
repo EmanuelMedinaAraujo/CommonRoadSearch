@@ -14,12 +14,12 @@ In the **root folder of the CommonRoad Search repository** run the following com
 
 **On Linux/MacOS**:
 ```
-sudo docker run -it -p 9000:8888 --mount src="$(pwd)",target=/commonroad/commonroad-search,type=bind gitlab.lrz.de:5005/tum-cps/commonroad-search:2022_AI
+sudo docker run -it -p 9000:8888 --mount src="$(pwd)",target=/commonroad/commonroad-search,type=bind gitlab.lrz.de:5005/tum-cps/commonroad-search:2025_AI
 ```
 
 **On Windows**:
 ```
-docker run -it -p 9000:8888 --mount src="%cd%",target=/commonroad/commonroad-search,type=bind gitlab.lrz.de:5005/tum-cps/commonroad-search:2022_AI
+docker run -it -p 9000:8888 --mount src="%cd%",target=/commonroad/commonroad-search,type=bind gitlab.lrz.de:5005/tum-cps/commonroad-search:2025_AI
 ```
 
 You can now access the Jupyter Notebook by opening `localhost:9000` in your browser.

@@ -20,7 +20,7 @@ RUN pip install --upgrade pip setuptools wheel \
     && poetry config virtualenvs.create false
 
 # Clone and install CommonRoad-Search
-RUN git clone --branch feature/docker-update-2025 --single-branch https://gitlab.lrz.de/tum-cps/commonroad-search.git
+RUN git clone https://gitlab.lrz.de/tum-cps/commonroad-search.git
 WORKDIR /commonroad/commonroad-search
 RUN poetry install --no-root --no-interaction && pip install jupyter ipywidgets
 
