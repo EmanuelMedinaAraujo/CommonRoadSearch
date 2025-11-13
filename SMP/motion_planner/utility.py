@@ -243,6 +243,7 @@ def show_scenario(
     figsize,
     offset,
 ):
+
     plot_search_scenario(
         scenario=scenario_data[0],
         initial_state=scenario_data[1],
@@ -308,9 +309,6 @@ def display_steps(
                 slider_max = min(slider_max, max_step)
             slider.max = slider_max
 
-            for i in range(slider.max + 1):
-                slider.value = i
-                # time.sleep(.5)
 
     slider = widgets.IntSlider(min=0, max=1, step=1, value=0)
     slider_visual = widgets.interactive(slider_callback, iteration=slider)
