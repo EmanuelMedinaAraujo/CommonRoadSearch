@@ -77,6 +77,9 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
         if final_lanelet_id is None or final_lanelet_id[0] is None:
             return np.inf
 
+        if self.calc_dist_to_closest_obstacle(final_lanelet_id[0], path_last[-1].position, path_last[-1].time_step) < 5:
+            return np.inf
+        
         # === Cost Components ===
         # 1. Optimal Velocity: |current_velocity - optimal_velocity|
         #    optimal_velocity = distance_to_goal / time_remaining
@@ -85,7 +88,7 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
         if time_remaining > 0:
             optimal_velocity = positional_offset_goal / (time_remaining * self.scenario.dt)
         else:
-            optimal_velocity = current_state.velocity  # No penalty if past deadline
+            optimal_velocity = 0  # No penalty if past deadline
         optimal_velocity_cost = abs(current_state.velocity - optimal_velocity)
 
         # 2. Positional Score: sum of distances from path states to reference path
@@ -93,6 +96,10 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
 
         # 3. Orientational Score: sum of orientation diffs from path states to reference path tangent
         orientational_score = self.calc_orientation_score_to_reference_path(node_current)
+        if orientational_score > 10:
+            return np.inf
+        
+
 
         # 4. Positional Offset Goal: distance to goal position (already computed above)
         # positional_offset_goal is already set
@@ -115,10 +122,10 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
 
         # === Weights ===
         weights = np.zeros(50)
-        weights[0] = 100      # optimal_velocity_cost
-        weights[1] = 50      # positional_score
+        weights[0] = 200     # optimal_velocity_cost
+        weights[1] = 150      # positional_score
         weights[2] = 80      # orientational_score
-        weights[3] = 100     # positional_offset_goal
+        weights[3] = 500     # positional_offset_goal
         weights[4] = 10      # orientational_offset_goal
         weights[5] = 10      # velocity_offset
 
@@ -217,32 +224,31 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
         and the reference path tangent at the closest point.
         """
         path_last = node_current.list_paths[-1]
-        ref_coords = np.asarray(self.reference_path_coords).reshape(-1, 2)
 
         total_diff = 0.0
         for state in path_last:
             pos = np.asarray(state.position, dtype=float)
-            # Find closest index on reference path
-            idx = self.find_closest_vertex(ref_coords, pos)
-            # Get tangent orientation at that index
-            ref_orientation = self.get_reference_orientation_at_index(ref_coords, idx)
+            # Map position to lanelet — should always exist
+            lanelet_ids = self.scenario.lanelet_network.find_lanelet_by_position([pos])[0]
+            assert lanelet_ids, "Position must map to at least one lanelet"
+            # choose lanelet matching state orientation if possible
+            lanelet_candidates = self.lanelets_of_position(lanelet_ids, state)
+            if lanelet_candidates:
+                ref_orientation = self.calc_lanelet_orientation(lanelet_candidates[0], pos)
+            else:
+                ref_orientation = self.calc_lanelet_orientation(lanelet_ids[0], pos)
             total_diff += self.calc_orientation_diff(state.orientation, ref_orientation)
 
         return total_diff
 
     def get_reference_orientation_at_index(self, ref_coords: np.ndarray, idx: int) -> float:
         """
-        Get the tangent orientation at a given index on the reference path.
-        Uses the vector from current point to next point (or previous to current if at end).
+        Deprecated. Uses lanelet orientation at the vertex if available, else falls back to tangent.
         """
-        n = len(ref_coords)
-        if idx < n - 1:
-            dx = ref_coords[idx + 1, 0] - ref_coords[idx, 0]
-            dy = ref_coords[idx + 1, 1] - ref_coords[idx, 1]
-        else:
-            dx = ref_coords[idx, 0] - ref_coords[idx - 1, 0]
-            dy = ref_coords[idx, 1] - ref_coords[idx - 1, 1]
-        return np.arctan2(dy, dx)
+        pos = np.asarray(ref_coords[idx], dtype=float)
+        lanelet_ids = self.scenario.lanelet_network.find_lanelet_by_position([pos])[0]
+        assert( lanelet_ids ), "Reference path point must map to at least one lanelet"
+        return self.calc_lanelet_orientation(lanelet_ids[0], pos)
 
     def get_goal_orientation(self) -> float:
         """
@@ -253,4 +259,4 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
         if hasattr(goal_state, "orientation") and goal_state.orientation is not None:
             return (goal_state.orientation.start + goal_state.orientation.end) / 2
         # No goal orientation specified - return None to indicate no penalty
-        return None
+        return 0
