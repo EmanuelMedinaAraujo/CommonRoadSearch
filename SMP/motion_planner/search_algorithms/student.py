@@ -79,11 +79,12 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
 
         if self.calc_dist_to_closest_obstacle(final_lanelet_id[0], path_last[-1].position, path_last[-1].time_step) < 5:
             return np.inf
+        # Positional Offset Goal: distance to goal position (already computed above)
+        positional_offset_goal = self.calc_heuristic_distance(current_state)
         
         # === Cost Components ===
-        # 1. Optimal Velocity: |current_velocity - optimal_velocity|
+        # Optimal Velocity: |current_velocity - optimal_velocity|
         #    optimal_velocity = distance_to_goal / time_remaining
-        positional_offset_goal = self.calc_heuristic_distance(current_state)
         time_remaining = self.time_desired.end - current_state.time_step
         if time_remaining > 0:
             optimal_velocity = positional_offset_goal / (time_remaining * self.scenario.dt)
@@ -91,20 +92,15 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
             optimal_velocity = 0  # No penalty if past deadline
         optimal_velocity_cost = abs(current_state.velocity - optimal_velocity)
 
-        # 2. Positional Score: sum of distances from path states to reference path
+        # Positional Score: sum of distances from path states to reference path
         positional_score = self.calc_distance_to_reference_path(node_current)
 
-        # 3. Orientational Score: sum of orientation diffs from path states to reference path tangent
+        # Orientational Score: sum of orientation diffs from path states to reference path tangent
         orientational_score = self.calc_orientation_score_to_reference_path(node_current)
         if orientational_score > 10:
             return np.inf
         
-
-
-        # 4. Positional Offset Goal: distance to goal position (already computed above)
-        # positional_offset_goal is already set
-
-        # 5. Orientational Offset Goal: orientation difference to goal orientation
+        # Orientational Offset Goal: orientation difference to goal orientation
         goal_orientation = self.get_goal_orientation()
         if goal_orientation is not None:
             orientational_offset_goal = self.calc_orientation_diff(current_state.orientation, goal_orientation)
@@ -206,13 +202,11 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
 
         total_distance = 0.0
         for state in path_last:
-            # Extract numeric position (handle Shapes with .center or sequence-like positions)
             if hasattr(state.position, "center"):
                 pos = np.array(state.position.center)
                 raise NotImplementedError("Shape-based positions not implemented in this heuristic.")
             else:
                 pos = np.asarray(state.position, dtype=float)
-            # Use helper from SearchBaseClass which computes distance to polyline
             dist = abs(self.calc_distance_to_nearest_point(ref_coords, pos))
             total_distance += dist
 
@@ -228,10 +222,8 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
         total_diff = 0.0
         for state in path_last:
             pos = np.asarray(state.position, dtype=float)
-            # Map position to lanelet — should always exist
             lanelet_ids = self.scenario.lanelet_network.find_lanelet_by_position([pos])[0]
             assert lanelet_ids, "Position must map to at least one lanelet"
-            # choose lanelet matching state orientation if possible
             lanelet_candidates = self.lanelets_of_position(lanelet_ids, state)
             if lanelet_candidates:
                 ref_orientation = self.calc_lanelet_orientation(lanelet_candidates[0], pos)
@@ -258,5 +250,4 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
         goal_state = self.planningProblem.goal.state_list[0]
         if hasattr(goal_state, "orientation") and goal_state.orientation is not None:
             return (goal_state.orientation.start + goal_state.orientation.end) / 2
-        # No goal orientation specified - return None to indicate no penalty
         return 0

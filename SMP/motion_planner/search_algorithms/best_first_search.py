@@ -24,6 +24,9 @@ class BestFirstSearch(SearchBaseClass, ABC):
     Abstract class for Best First Search algorithm.
     """
 
+    # Set to a positive integer to limit search iterations (useful for debugging)
+    max_iterations: int = None
+
     def __init__(
         self, scenario, planningProblem, automaton, plot_config=DefaultPlotConfig
     ):
@@ -124,7 +127,14 @@ class BestFirstSearch(SearchBaseClass, ABC):
         list_status_nodes.append(copy.copy(dict_status_nodes))
 
         start_time = time.perf_counter()
+        iteration = 0
         while not self.frontier.empty():
+            # Check max iterations limit (for debugging)
+            if self.max_iterations is not None and iteration >= self.max_iterations:
+                print(f"Stopped after {iteration} iterations (max_iterations={self.max_iterations})")
+                break
+            iteration += 1
+            
             if SMP.batch_processing.timeout_config.use_sequential_processing:
                 if (
                     time.perf_counter() - start_time
