@@ -1,3 +1,4 @@
+import re
 import numpy as np
 from sys import maxsize as INT_MAX
 from SMP.motion_planner.node import PriorityNode
@@ -61,118 +62,78 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
 
         
     def evaluation_function(self, node_current: PriorityNode) -> float:
-        ########################################################################
-        # todo: Implement your own evaluation function here.                   #
-        ########################################################################
         node_current.priority = self.heuristic_function(node_current=node_current)
         return node_current.priority
 
     def heuristic_function(self, node_current: PriorityNode) -> float:
-        ########################################################################
-        # todo: Implement your own heuristic cost calculation here.            #
-        # Hint:                                                                #
-        #   Use the State of the current node and the information from the     #
-        #   planning problem, as well as from the scenario.                    #
-        #   Some helper functions for your convenience can be found in         #
-        #   ./search_algorithms/base_class.py                             #
-        ########################################################################
-
         if self.time_only_goal:
             return self.survival_heuristic_function(node_current=node_current)
 
         path_last = node_current.list_paths[-1]
+        current_state = path_last[-1]
 
-        distStartState = self.calc_heuristic_distance(path_last[0])
-        distLastState = self.calc_heuristic_distance(path_last[-1])
-
-        if distLastState is None:
+        # Lanelet validity check
+        cost_lanelet, final_lanelet_id, _ = self.calc_heuristic_lanelet(path_last)
+        if final_lanelet_id is None or final_lanelet_id[0] is None:
             return np.inf
 
-        if distStartState < distLastState:
-            return 10000
-
-        cost_lanelet, final_lanelet_id, start_lanelet_id = self.calc_heuristic_lanelet(
-            path_last
-        )
-
-        if cost_lanelet is None or final_lanelet_id is None or final_lanelet_id[0] is None:
-            return np.inf
-
-        efficency = self.calc_path_efficiency(path_last)
-
-        # Resolve time_step to an int (handle Interval-like objects)
-        state_time = path_last[-1].time_step
-        time_step_int = None
-        if isinstance(state_time, int):
-            time_step_int = state_time
-        elif hasattr(state_time, "end"):
-            try:
-                time_step_int = int(state_time.end)
-            except Exception:
-                time_step_int = None
-        elif hasattr(state_time, "start"):
-            # prefer start of interval
-            try:
-                time_step_int = int(state_time.start)
-            except Exception:
-                time_step_int = None
-
-
-        if time_step_int is None:
-            return np.inf
-
-        factor = 1
-        numObstaclesInLane = self.num_obstacles_in_lanelet_at_time_step(time_step_int, final_lanelet_id[0])
-        isGoalInLane = self.is_goal_in_lane(final_lanelet_id[0])
-        if isGoalInLane:
-            factor = factor * 0.1
-        if self.dict_lanelets_costs[final_lanelet_id[0]] == -1:
-            return np.inf
-        if start_lanelet_id is None or self.dict_lanelets_costs[final_lanelet_id[0]] > self.dict_lanelets_costs[start_lanelet_id[0]]:
-           return np.inf
-        if self.dict_lanelets_costs[final_lanelet_id[0]] < self.dict_lanelets_costs[start_lanelet_id[0]]:
-          factor = factor * 0.1
-
-        angleToGoal = self.calc_angle_to_goal(path_last[-1])
-
-        orientationToGoalDiff = self.calc_orientation_diff(
-            angleToGoal, path_last[-1].orientation
-        )
-        if final_lanelet_id[0] in self.list_ids_lanelets_goal:
-            factor = factor * 0.07
-        pathLength = self.calc_travelled_distance(path_last)
-        weights = np.zeros(6)
-        if distLastState < 0.5:
-            factor = factor * 0.00001
-        # elif math.pi - abs(abs(laneletOrientationAtPosition - path[-1].orientation)
-
-        if hasattr(self.planningProblem.goal.state_list[0], "velocity"):
-            v_mean_goal = (
-                self.planningProblem.goal.state_list[0].velocity.start
-                + self.planningProblem.goal.state_list[0].velocity.end
-            ) / 2
-            dist_vel = abs(path_last[-1].velocity - v_mean_goal)
+        # === Cost Components ===
+        # 1. Optimal Velocity: |current_velocity - optimal_velocity|
+        #    optimal_velocity = distance_to_goal / time_remaining
+        positional_offset_goal = self.calc_heuristic_distance(current_state)
+        time_remaining = self.time_desired.end - current_state.time_step
+        if time_remaining > 0:
+            optimal_velocity = positional_offset_goal / (time_remaining * self.scenario.dt)
         else:
-            dist_vel = 0
+            optimal_velocity = current_state.velocity  # No penalty if past deadline
+        optimal_velocity_cost = abs(current_state.velocity - optimal_velocity)
 
-        weights[0] = 8.7
-        weights[1] = 0.1
-        weights[2] = 5
-        weights[3] = 1
-        weights[4] = 0.005
-        weights[5] = 1
+        # 2. Positional Score: sum of distances from path states to reference path
+        positional_score = self.calc_distance_to_reference_path(node_current)
+
+        # 3. Orientational Score: sum of orientation diffs from path states to reference path tangent
+        orientational_score = self.calc_orientation_score_to_reference_path(node_current)
+
+        # 4. Positional Offset Goal: distance to goal position (already computed above)
+        # positional_offset_goal is already set
+
+        # 5. Orientational Offset Goal: orientation difference to goal orientation
+        goal_orientation = self.get_goal_orientation()
+        if goal_orientation is not None:
+            orientational_offset_goal = self.calc_orientation_diff(current_state.orientation, goal_orientation)
+        else:
+            orientational_offset_goal = 0.0
+
+        # 6. Velocity Offset: |current_velocity - goal_velocity_mean|
+        goal_state = self.planningProblem.goal.state_list[0]
+        if hasattr(goal_state, "velocity") and goal_state.velocity is not None:
+            v_goal = goal_state.velocity
+            v_mean_goal = (v_goal.start + v_goal.end) / 2
+            velocity_offset = abs(current_state.velocity - v_mean_goal)
+        else:
+            velocity_offset = 0.0
+
+        # === Weights ===
+        weights = np.zeros(50)
+        weights[0] = 100      # optimal_velocity_cost
+        weights[1] = 50      # positional_score
+        weights[2] = 80      # orientational_score
+        weights[3] = 100     # positional_offset_goal
+        weights[4] = 10      # orientational_offset_goal
+        weights[5] = 10      # velocity_offset
+
         cost = (
-            weights[0] * (cost_lanelet / len(path_last))
-            + weights[1] * abs(orientationToGoalDiff)
-            + weights[2] * distLastState
-            + weights[3] * efficency
-            + weights[4] * (100 - pathLength)
-            + weights[5] * dist_vel
+            weights[0] * optimal_velocity_cost
+            + weights[1] * positional_score
+            + weights[2] * orientational_score
+            + weights[3] * positional_offset_goal
+            + weights[4] * orientational_offset_goal
+            + weights[5] * velocity_offset
         )
 
         if cost < 0:
             cost = 0
-        return cost * factor
+        return cost
 
 
     def survival_heuristic_function(self, node_current: PriorityNode) -> float:
@@ -212,8 +173,8 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
         w_time = 100.0
         w_accel = 1.0
         w_steer_angle = 0.5
-        w_steer_rate = 0.3
-        w_lane_offset = 10.0
+        w_steer_rate = 20
+        w_lane_offset = 30.0
 
         cost = (
             w_time * time_remaining
@@ -241,6 +202,7 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
             # Extract numeric position (handle Shapes with .center or sequence-like positions)
             if hasattr(state.position, "center"):
                 pos = np.array(state.position.center)
+                raise NotImplementedError("Shape-based positions not implemented in this heuristic.")
             else:
                 pos = np.asarray(state.position, dtype=float)
             # Use helper from SearchBaseClass which computes distance to polyline
@@ -248,3 +210,47 @@ class StudentMotionPlanner(GreedyBestFirstSearch):
             total_distance += dist
 
         return total_distance
+
+    def calc_orientation_score_to_reference_path(self, node_current: PriorityNode) -> float:
+        """
+        Calculate sum of orientation differences between each state in the last path
+        and the reference path tangent at the closest point.
+        """
+        path_last = node_current.list_paths[-1]
+        ref_coords = np.asarray(self.reference_path_coords).reshape(-1, 2)
+
+        total_diff = 0.0
+        for state in path_last:
+            pos = np.asarray(state.position, dtype=float)
+            # Find closest index on reference path
+            idx = self.find_closest_vertex(ref_coords, pos)
+            # Get tangent orientation at that index
+            ref_orientation = self.get_reference_orientation_at_index(ref_coords, idx)
+            total_diff += self.calc_orientation_diff(state.orientation, ref_orientation)
+
+        return total_diff
+
+    def get_reference_orientation_at_index(self, ref_coords: np.ndarray, idx: int) -> float:
+        """
+        Get the tangent orientation at a given index on the reference path.
+        Uses the vector from current point to next point (or previous to current if at end).
+        """
+        n = len(ref_coords)
+        if idx < n - 1:
+            dx = ref_coords[idx + 1, 0] - ref_coords[idx, 0]
+            dy = ref_coords[idx + 1, 1] - ref_coords[idx, 1]
+        else:
+            dx = ref_coords[idx, 0] - ref_coords[idx - 1, 0]
+            dy = ref_coords[idx, 1] - ref_coords[idx - 1, 1]
+        return np.arctan2(dy, dx)
+
+    def get_goal_orientation(self) -> float:
+        """
+        Get goal orientation. If not available, compute from reference path end tangent.
+        Returns None if goal has no orientation and reference path fallback is used.
+        """
+        goal_state = self.planningProblem.goal.state_list[0]
+        if hasattr(goal_state, "orientation") and goal_state.orientation is not None:
+            return (goal_state.orientation.start + goal_state.orientation.end) / 2
+        # No goal orientation specified - return None to indicate no penalty
+        return None
